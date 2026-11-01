@@ -31,14 +31,14 @@ trigger_condition: 當使用者要求加入實戰互動導引、操作教學、�
 
 ## 🎯 4 大注入執行步驟 (Core Protocol)
 
-### Step 1: 盤點工作流與模式配置 (Workflow Audit & Dual Modes)
-AI 必須同時建構並支援兩種導引模式，滿足不同情境需求：
+### Step 1: 雙模式步驟盤點與模式勾選器 (Dual Modes & Mode Selector)
+AI 必須同時盤點並實作以下兩套步驟清單，並在導覽啟動時提供**模式勾選選擇器 (Mode Selector)**：
 - **`concise` (收斂精簡模式)**：
   - **規則**：嚴格過濾次要控制項，僅保留 4 至 6 個核心操作步驟（起點 $\rightarrow$ 核心 $\rightarrow$ 終點）。
 - **`detailed` (詳細全覆蓋模式)**：
   - **規則**：執行 100% 地毯式盤點，涵蓋所有 Tab 分頁、Expander 展開面板、次要按鈕與輸入框，不限步驟數量。
 
-在初始化引擎時傳入雙模式清單：`modes: { concise: [...], detailed: [...] }`，介面將自動提供「⚡ 精簡導引」與「📖 完整教學」模式切換。
+**啟動流程**：在介面點擊「❓ 操作導覽」或首次開啟時，預設彈出**模式勾選器彈窗**，讓使用者自由勾選「⚡ 收斂精簡模式」或「📖 詳細全覆蓋模式」後再開始導引！代碼支援 `guide.startWithSelection()`。
 
 ### Step 2: 綁定語意錨點與事件 (Semantic Anchoring)
 - **Web/HTML**：目標元素標記 `data-tour="step-X"`，並設定 `advanceOn`:
