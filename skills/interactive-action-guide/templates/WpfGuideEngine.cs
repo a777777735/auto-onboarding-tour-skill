@@ -8,6 +8,8 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using InteractiveActionGuide.Common;
 
 namespace InteractiveActionGuide.Wpf
 {
@@ -19,44 +21,21 @@ namespace InteractiveActionGuide.Wpf
         Right
     }
 
-    /// <summary>
-    /// 導引模式：收斂精簡 (4~6步) 或 詳細全覆蓋 (無限制)
-    /// </summary>
     public enum GuideMode
     {
-        Concise,  // 收斂精簡模式：保留 4 至 6 個核心步驟
-        Detailed  // 詳細全覆蓋模式：地毯式涵蓋所有 Tab/Expander/輸入框
+        Concise,  // 4~6 步核心流程
+        Detailed  // 全功能地毯式引導
     }
 
-    /// <summary>
-    /// 定義互動引導步驟
-    /// 支援四周鎖死、洞口穿透 (Click-Through) 與真實事件自動推進
-    /// </summary>
     public class GuideStep
     {
         public object Target { get; set; }
         public string Title { get; set; }
         public string Content { get; set; }
         public GuidePlacement Placement { get; set; } = GuidePlacement.Bottom;
-
-        /// <summary>
-        /// 是否在目標控制項被真實點擊 (Click / PreviewMouseDown) 時自動跳下一步
-        /// </summary>
         public bool AdvanceOnClick { get; set; } = true;
-
-        /// <summary>
-        /// 針對 TextBox：文字變更時的檢驗委派，返回 true 則自動跳下一步
-        /// </summary>
         public Predicate<string> AdvanceOnTextValidate { get; set; }
-
-        /// <summary>
-        /// 針對 ComboBox / Selector：選擇項變更時是否自動跳下一步
-        /// </summary>
         public bool AdvanceOnSelectionChange { get; set; }
-
-        /// <summary>
-        /// 顯示此步驟前執行的委派（例如切換 TabControl.SelectedIndex、展開 Expander 等）
-        /// </summary>
         public Func<Task> BeforeShowAsync { get; set; }
 
         public Action BeforeShow
@@ -75,20 +54,22 @@ namespace InteractiveActionGuide.Wpf
         }
     }
 
-    /// <summary>
-    /// WPF 實戰互動導引引擎 (C# 7.3 嚴格相容)
-    /// </summary>
     public class WpfInteractiveGuideManager
     {
         private readonly Window _window;
         private readonly List<GuideStep> _conciseSteps = new List<GuideStep>();
         private readonly List<GuideStep> _detailedSteps = new List<GuideStep>();
+        private readonly List<SopStepInfo> _sopSteps = new List<SopStepInfo>();
         private GuideAdorner _currentAdorner;
         private int _currentIndex = -1;
         private GuideMode _currentMode = GuideMode.Concise;
 
         public string StorageKey { get; set; } = "iag_wpf_guide_completed";
         public double SpotlightPadding { get; set; } = 8.0;
+        public bool AutoCaptureSopScreenshot { get; set; } = true;
+        public string SopExportDirectory { get; set; } = "docs/SOP";
+        public string SopAppTitle { get; set; } = "系統操作指引";
+
         public GuideMode CurrentMode => _currentMode;
         public IReadOnlyList<GuideStep> Steps => _currentMode == GuideMode.Concise ? (IReadOnlyList<GuideStep>)_conciseSteps : _detailedSteps;
         public bool IsActive => _currentAdorner != null;
@@ -129,9 +110,6 @@ namespace InteractiveActionGuide.Wpf
             return AddStep(step, mode);
         }
 
-        /// <summary>
-        /// 彈出模式勾選選擇器視窗，供使用者自由勾選後啟動
-        /// </summary>
         public void StartWithSelectionDialog()
         {
             var dlg = new Window
@@ -205,18 +183,18 @@ namespace InteractiveActionGuide.Wpf
             }
         }
 
-        public void SwitchMode(GuideMode mode)
+        private string GetStorageFilePath()
         {
-            _currentMode = mode;
-            if (IsActive)
-            {
-                GoToStep(0);
-            }
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string dir = Path.Combine(appData, "InteractiveActionGuide");
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            return Path.Combine(dir, $"{StorageKey}.flag");
         }
 
         public void Start(GuideMode mode = GuideMode.Concise, int startIndex = 0)
         {
             _currentMode = mode;
+            _sopSteps.Clear();
             var activeSteps = Steps;
             if (activeSteps.Count == 0) return;
 
@@ -239,10 +217,10 @@ namespace InteractiveActionGuide.Wpf
 
         public async void GoToStep(int index)
         {
-            if (index < 0 || index >= _steps.Count) return;
+            if (index < 0 || index >= Steps.Count) return;
 
             _currentIndex = index;
-            var step = _steps[index];
+            var step = Steps[index];
 
             if (step.BeforeShowAsync != null)
             {
@@ -257,13 +235,66 @@ namespace InteractiveActionGuide.Wpf
                 }
             }
 
-            _currentAdorner?.UpdateStep(step, _currentIndex, _steps.Count);
+            _currentAdorner?.UpdateStep(step, _currentIndex, Steps.Count);
             StepChanged?.Invoke(this, _currentIndex);
+
+            // 自動觸發 SOP 截圖
+            if (AutoCaptureSopScreenshot)
+            {
+                Task.Delay(350).ContinueWith(t =>
+                {
+                    try
+                    {
+                        _window.Dispatcher.Invoke(new Action(() =>
+                        {
+                            CaptureStep(step, _currentIndex + 1);
+                        }));
+                    }
+                    catch { }
+                });
+            }
+        }
+
+        private void CaptureStep(GuideStep step, int stepNumber)
+        {
+            try
+            {
+                string shotsDir = Path.Combine(SopExportDirectory, "screenshots");
+                if (!Directory.Exists(shotsDir)) Directory.CreateDirectory(shotsDir);
+
+                string shotFileName = string.Format("step_{0}.png", stepNumber);
+                string shotFullPath = Path.Combine(shotsDir, shotFileName);
+
+                int w = (int)_window.ActualWidth;
+                int h = (int)_window.ActualHeight;
+                if (w <= 0 || h <= 0) return;
+
+                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(_window);
+
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                using (var fs = new FileStream(shotFullPath, FileMode.Create))
+                {
+                    encoder.Save(fs);
+                }
+
+                _sopSteps.Add(new SopStepInfo
+                {
+                    StepIndex = stepNumber,
+                    Title = step.Title,
+                    Content = step.Content,
+                    TargetName = step.Target != null ? step.Target.ToString() : string.Empty,
+                    ActionType = step.AdvanceOnClick ? "點擊控制項" : (step.AdvanceOnSelectionChange ? "切換選項" : "輸入內容"),
+                    ScreenshotRelativePath = Path.Combine("screenshots", shotFileName)
+                });
+            }
+            catch { }
         }
 
         public void Next()
         {
-            if (_currentIndex < _steps.Count - 1)
+            if (_currentIndex < Steps.Count - 1)
             {
                 GoToStep(_currentIndex + 1);
             }
@@ -284,6 +315,16 @@ namespace InteractiveActionGuide.Wpf
         public void Complete()
         {
             SaveCompletionFlag();
+
+            if (AutoCaptureSopScreenshot && _sopSteps.Count > 0)
+            {
+                try
+                {
+                    SopDocumentGenerator.GenerateMarkdown(SopAppTitle, _currentMode.ToString(), _sopSteps, SopExportDirectory);
+                }
+                catch { }
+            }
+
             Stop();
             GuideCompleted?.Invoke(this, EventArgs.Empty);
         }
@@ -376,17 +417,10 @@ namespace InteractiveActionGuide.Wpf
             protected override int VisualChildrenCount => _visualChildren.Count;
             protected override Visual GetVisualChild(int index) => _visualChildren[index];
 
-            /// <summary>
-            /// 核心穿透機制：
-            /// 命中點若在洞口內，返回 null (穿透至下方真實控制項)！
-            /// 命中點若在卡片內，由卡片處理點擊。
-            /// 命中點若在洞口外，返回 this (鎖死攔截點擊)！
-            /// </summary>
             protected override HitTestResult HitTestCore(PointHitTestParameters hitTestParameters)
             {
                 Point pt = hitTestParameters.HitPoint;
 
-                // 若點擊教學卡片本身，允許點擊卡片上的按鈕
                 if (_cardContainer != null && _cardContainer.IsVisible)
                 {
                     GeneralTransform transform = _cardContainer.TransformToAncestor(this);
@@ -400,13 +434,11 @@ namespace InteractiveActionGuide.Wpf
                     }
                 }
 
-                // 若點擊位於洞口內，返回 null 讓事件完全穿透到底下的真實控制項！
                 if (!_targetHoleRect.IsEmpty && _targetHoleRect.Contains(pt))
                 {
                     return null;
                 }
 
-                // 洞口外其餘背景全數攔截 (鎖死四周)
                 return new PointHitTestResult(this, pt);
             }
 
@@ -437,10 +469,8 @@ namespace InteractiveActionGuide.Wpf
                 _currentStep = step;
                 _currentTarget = _manager.FindTargetElement(step.Target);
 
-                // 綁定真實操作事件監聽
                 BindTargetEvents(step);
 
-                // 建構教學卡片 UI
                 var stack = new StackPanel();
 
                 var headerGrid = new Grid();
@@ -474,7 +504,6 @@ namespace InteractiveActionGuide.Wpf
                 headerGrid.Children.Add(btnClose);
                 stack.Children.Add(headerGrid);
 
-                // 進度條
                 var progressWrap = new Border
                 {
                     Height = 4,
@@ -493,7 +522,6 @@ namespace InteractiveActionGuide.Wpf
                 progressWrap.Child = progressFill;
                 stack.Children.Add(progressWrap);
 
-                // 說明文字
                 var txtContent = new TextBlock
                 {
                     Text = step.Content,
@@ -505,7 +533,6 @@ namespace InteractiveActionGuide.Wpf
                 };
                 stack.Children.Add(txtContent);
 
-                // 操作徽章
                 var badgeBorder = new Border
                 {
                     Background = new SolidColorBrush(Color.FromRgb(240, 249, 255)),
@@ -525,14 +552,13 @@ namespace InteractiveActionGuide.Wpf
                 badgeBorder.Child = badgeTxt;
                 stack.Children.Add(badgeBorder);
 
-                // 底部計數與按鈕
                 var footerGrid = new Grid();
                 footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
                 var txtCounter = new TextBlock
                 {
-                    Text = $"{index + 1} / {total}",
+                    Text = string.Format("{0} / {1}", index + 1, total),
                     FontSize = 12,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
@@ -767,10 +793,8 @@ namespace InteractiveActionGuide.Wpf
                     var holeGeometry = new RectangleGeometry(_targetHoleRect, 8, 8);
                     maskGeometry = new CombinedGeometry(GeometryCombineMode.Exclude, fullGeometry, holeGeometry);
 
-                    // 繪製半透明挖洞遮罩
                     drawingContext.DrawGeometry(new SolidColorBrush(Color.FromArgb(198, 15, 23, 42)), null, maskGeometry);
 
-                    // 繪製高亮外框
                     var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(220, 2, 132, 199)), 2.5);
                     drawingContext.DrawRoundedRectangle(null, borderPen, _targetHoleRect, 8, 8);
                 }

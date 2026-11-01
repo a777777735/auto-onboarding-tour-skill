@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
+using InteractiveActionGuide.Common;
 
 namespace InteractiveActionGuide.WinForms
 {
@@ -63,12 +64,17 @@ namespace InteractiveActionGuide.WinForms
         private readonly Form _mainForm;
         private readonly List<GuideStep> _conciseSteps = new List<GuideStep>();
         private readonly List<GuideStep> _detailedSteps = new List<GuideStep>();
+        private readonly List<SopStepInfo> _sopSteps = new List<SopStepInfo>();
         private GuideOverlayForm _overlayForm;
         private int _currentIndex = -1;
         private GuideMode _currentMode = GuideMode.Concise;
 
         public string StorageKey { get; set; } = "iag_winforms_guide_completed";
         public int SpotlightPadding { get; set; } = 8;
+        public bool AutoCaptureSopScreenshot { get; set; } = true;
+        public string SopExportDirectory { get; set; } = "docs/SOP";
+        public string SopAppTitle { get; set; } = "系統操作指引";
+
         public GuideMode CurrentMode => _currentMode;
         public IReadOnlyList<GuideStep> Steps => _currentMode == GuideMode.Concise ? (IReadOnlyList<GuideStep>)_conciseSteps : _detailedSteps;
         public bool IsActive => _overlayForm != null && !_overlayForm.IsDisposed && _overlayForm.Visible;
@@ -214,10 +220,10 @@ namespace InteractiveActionGuide.WinForms
 
         public void GoToStep(int index)
         {
-            if (index < 0 || index >= _steps.Count) return;
+            if (index < 0 || index >= Steps.Count) return;
 
             _currentIndex = index;
-            var step = _steps[index];
+            var step = Steps[index];
 
             try
             {
@@ -229,13 +235,60 @@ namespace InteractiveActionGuide.WinForms
                 System.Diagnostics.Debug.WriteLine($"[InteractiveGuide] BeforeShow error: {ex.Message}");
             }
 
-            _overlayForm?.RenderStep(step, _currentIndex, _steps.Count);
+            _overlayForm?.RenderStep(step, _currentIndex, Steps.Count);
             StepChanged?.Invoke(this, _currentIndex);
+
+            if (AutoCaptureSopScreenshot)
+            {
+                var timer = new Timer { Interval = 350 };
+                timer.Tick += (s, e) =>
+                {
+                    timer.Stop();
+                    timer.Dispose();
+                    CaptureStep(step, _currentIndex + 1);
+                };
+                timer.Start();
+            }
+        }
+
+        private void CaptureStep(GuideStep step, int stepNumber)
+        {
+            try
+            {
+                string shotsDir = Path.Combine(SopExportDirectory, "screenshots");
+                if (!Directory.Exists(shotsDir)) Directory.CreateDirectory(shotsDir);
+
+                string shotFileName = string.Format("step_{0}.png", stepNumber);
+                string shotFullPath = Path.Combine(shotsDir, shotFileName);
+
+                var bounds = _mainForm.Bounds;
+                if (bounds.Width <= 0 || bounds.Height <= 0) return;
+
+                using (var bmp = new Bitmap(bounds.Width, bounds.Height))
+                {
+                    using (var g = Graphics.FromImage(bmp))
+                    {
+                        g.CopyFromScreen(bounds.Location, Point.Empty, bounds.Size);
+                    }
+                    bmp.Save(shotFullPath, System.Drawing.Imaging.ImageFormat.Png);
+                }
+
+                _sopSteps.Add(new SopStepInfo
+                {
+                    StepIndex = stepNumber,
+                    Title = step.Title,
+                    Content = step.Content,
+                    TargetName = step.Target != null ? step.Target.ToString() : string.Empty,
+                    ActionType = step.AdvanceOnClick ? "點擊控制項" : (step.AdvanceOnSelectionChange ? "切換選項" : "輸入內容"),
+                    ScreenshotRelativePath = Path.Combine("screenshots", shotFileName)
+                });
+            }
+            catch { }
         }
 
         public void Next()
         {
-            if (_currentIndex < _steps.Count - 1)
+            if (_currentIndex < Steps.Count - 1)
             {
                 GoToStep(_currentIndex + 1);
             }
@@ -256,6 +309,16 @@ namespace InteractiveActionGuide.WinForms
         public void Complete()
         {
             SaveCompletionFlag();
+
+            if (AutoCaptureSopScreenshot && _sopSteps.Count > 0)
+            {
+                try
+                {
+                    SopDocumentGenerator.GenerateMarkdown(SopAppTitle, _currentMode.ToString(), _sopSteps, SopExportDirectory);
+                }
+                catch { }
+            }
+
             Stop();
             GuideCompleted?.Invoke(this, EventArgs.Empty);
         }
@@ -285,6 +348,14 @@ namespace InteractiveActionGuide.WinForms
                 File.WriteAllText(GetStorageFilePath(), DateTime.UtcNow.ToString("O"));
             }
             catch { }
+        }
+
+        private string GetStorageFilePath()
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string dir = Path.Combine(appData, "InteractiveActionGuide");
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            return Path.Combine(dir, StorageKey + ".flag");
         }
 
         internal Control FindControl(object target)
@@ -348,13 +419,11 @@ namespace InteractiveActionGuide.WinForms
                 _currentStep = step;
                 _currentTargetControl = _manager.FindControl(step.Target);
 
-                // 綁定真實操作監聽
                 BindTargetEvents(step);
 
                 _cardPanel.SuspendLayout();
                 _cardPanel.Controls.Clear();
 
-                // 標題 + 關閉
                 var lblTitle = new Label
                 {
                     Text = "👉 " + step.Title,
@@ -377,7 +446,6 @@ namespace InteractiveActionGuide.WinForms
                 btnClose.FlatAppearance.BorderSize = 0;
                 btnClose.Click += (s, e) => _manager.Skip();
 
-                // 進度條
                 var pnlProgress = new Panel
                 {
                     Location = new Point(14, 40),
@@ -392,7 +460,6 @@ namespace InteractiveActionGuide.WinForms
                 };
                 pnlProgress.Controls.Add(pnlFill);
 
-                // 說明文字
                 var lblContent = new Label
                 {
                     Text = step.Content,
@@ -403,7 +470,6 @@ namespace InteractiveActionGuide.WinForms
                     AutoEllipsis = true
                 };
 
-                // 操作提示 Badge
                 var lblBadge = new Label
                 {
                     Text = "🎯 請在上方高亮控制項中操作以繼續",
@@ -416,7 +482,6 @@ namespace InteractiveActionGuide.WinForms
                     Padding = new Padding(4, 0, 0, 0)
                 };
 
-                // 計數
                 var lblCounter = new Label
                 {
                     Text = $"{index + 1} / {total}",
@@ -562,7 +627,6 @@ namespace InteractiveActionGuide.WinForms
                         screenRect.Height + p * 2
                     );
 
-                    // Region.Exclude 實現洞口穿透操作 (Click-Through)
                     var fullRegion = new Region(ClientRectangle);
                     fullRegion.Exclude(_targetHoleRect);
                     Region = fullRegion;
