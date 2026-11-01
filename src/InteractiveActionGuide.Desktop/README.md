@@ -7,5 +7,5 @@
 - **監聽目標控制項真實操作事件自動跳下一步 (Advance On Real User Actions)**
 - **支援雙模式：收斂精簡模式 (4~6步) 與 詳細全覆蓋模式**
 - **自動化步驟截圖與 SOP 圖文 Markdown 產生 (`docs/SOP/USER_MANUAL.md`)**
-- **多目標框架支援：.NET Framework 4.8、.NET 6.0-windows、.NET 8.0-windows**
+- **多目標框架支援：.NET Framework 4.7.2、.NET Framework 4.8、.NET 6.0-windows、.NET 8.0-windows**
 - **C# 7.3 嚴格相容，零外部依賴**
