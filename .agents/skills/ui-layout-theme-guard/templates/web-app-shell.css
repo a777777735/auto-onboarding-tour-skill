@@ -1,14 +1,15 @@
 /**
  * web-app-shell.css - Industrial Slate Dark Theme & 防溢出 App Shell 佈局基底
  * 適用：單檔 HTML、現代 Web 儀表板、後台管理系統
- * 特色：100vh 視窗鎖定、防雙重捲軸、Flex/Grid 防撐破 min-width: 0、WCAG AA 色票
+ * 特色：100vh 視窗鎖定、防雙重捲軸、Flex/Grid 防撐破 min-width: 0、WCAG AA 色票、Table 表頭強制深色化
  */
 
 :root {
   /* 背景層級 (Backgrounds) */
   --bg-primary: #0f172a;   /* Slate 900: 畫布主背景 */
   --bg-surface: #1e293b;   /* Slate 800: 面板、卡片、導航列 */
-  --bg-elevated: #334155;  /* Slate 700: 輸入框底色、懸停區塊 */
+  --bg-elevated: #334155;  /* Slate 700: 輸入框底色、懸停區塊、表格標題列 */
+  --bg-row-alt: #162032;   /* Slate 850: 表格偶數列交替色 */
   
   /* 邊框線條 (Borders) */
   --border-color: #334155; /* Slate 700: 1px 分隔線 */
@@ -129,4 +130,59 @@ html, body {
   min-width: 0 !important;
   min-height: 0 !important;
   overflow: hidden;
+}
+
+/* ======================================================== */
+/* 表格與資料網格強制深色化規範 (Table Deep Styling)        */
+/* ======================================================== */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  margin-bottom: var(--space-lg);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+/* 表頭強制深色背景與文字，黏性置頂 (Sticky) 且防止白底殘留 */
+thead th {
+  background-color: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+tbody tr {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.15s ease;
+}
+
+/* 奇偶列交替色 */
+tbody tr:nth-child(even) {
+  background-color: var(--bg-row-alt);
+}
+
+tbody tr:hover {
+  background-color: var(--bg-elevated);
+}
+
+tbody td {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
 }
