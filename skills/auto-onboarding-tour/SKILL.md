@@ -13,10 +13,18 @@ trigger_condition: 當使用者要求加入操作教學、新手引導、下一�
 
 ---
 
-## 🔍 專案類型自動偵測 (Environment Detection)
-- **Web / HTML 專案**（`.html`, `.jsx`, `.vue`）$\rightarrow$ 採用 `templates/tour-engine.js`。
-- **C# WPF 專案**（`.csproj` 含 `<UseWPF>true</UseWPF>` 或 `.xaml` 檔）$\rightarrow$ 採用 `templates/WpfTourEngine.cs`。
-- **C# WinForms 專案**（`.csproj` 含 `<UseWindowsForms>true</UseWindowsForms>` 或 `Form.Designer.cs`）$\rightarrow$ 採用 `templates/WinFormsTourEngine.cs`。
+## 🔍 Step 0: 環境與版本前置偵測 (Environment & Version Pre-flight Check)
+
+在產生、注入或調整任何導覽邏輯前，AI **必須先執行環境與版本前置審查**：
+
+1. **C# 專案版本適配 (讀取 `.csproj`)**：
+   - **.NET Framework 4.5~4.8**：強制以 **C# 7.3 嚴格相容語法** 撰寫或注入調用代碼（使用傳統區塊 namespace、明確宣告型別 `new List<WpfTourStep>()`、不使用 Nullable 參考型別標記 `?` 或 `switch` 運算式）。
+   - **.NET 6 / .NET 8**：自動適配 Nullable 與 ImplicitUsings。
+   - **模板最大相容性原則**：`templates/WpfTourEngine.cs` 與 `templates/WinFormsTourEngine.cs` 100% 採 C# 7.3 標準撰寫，確保免修改即可在 .NET Framework 4.5 至 .NET 8 直接編譯。
+2. **專案類型自動判定**：
+   - **Web / HTML 專案**（`.html`, `.jsx`, `.vue`）$\rightarrow$ 採用 `templates/tour-engine.js`。無 `package.json` 時採用 Inline 原生內嵌；有 `package.json` 時採用 ES Module 匯入。
+   - **C# WPF 專案**（`.csproj` 含 `<UseWPF>true</UseWPF>` 或 `.xaml` 檔）$\rightarrow$ 採用 `templates/WpfTourEngine.cs`。
+   - **C# WinForms 專案**（`.csproj` 含 `<UseWindowsForms>true</UseWindowsForms>` 或 `Form.Designer.cs`）$\rightarrow$ 採用 `templates/WinFormsTourEngine.cs`。
 
 ---
 
@@ -45,5 +53,5 @@ trigger_condition: 當使用者要求加入操作教學、新手引導、下一�
 
 ## 📦 零依賴導覽引擎模板引用
 - **Web 導覽引擎**：`templates/tour-engine.js`（`box-shadow` 挖洞遮罩、智慧防溢出 Tooltip、鍵盤操作）。
-- **WPF 導覽引擎**：`templates/WpfTourEngine.cs`（`AdornerLayer` + `CombinedGeometry` 挖洞、防溢出卡片）。
-- **WinForms 導覽引擎**：`templates/WinFormsTourEngine.cs`（無邊框 Overlay Form + `Region.Exclude` 鏤空高亮）。
+- **WPF 導覽引擎**：`templates/WpfTourEngine.cs`（C# 7.3 相容、`AdornerLayer` + `CombinedGeometry` 挖洞、防溢出卡片）。
+- **WinForms 導覽引擎**：`templates/WinFormsTourEngine.cs`（C# 7.3 相容、無邊框 Overlay Form + `Region.Exclude` 鏤空高亮）。

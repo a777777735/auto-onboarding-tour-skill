@@ -4,6 +4,31 @@
 
 ---
 
+## 🔍 Step 0: 環境與版本前置偵測 (Environment & Version Pre-flight Check)
+
+在生成、修改或注入任何代碼之前，AI **必須先執行環境與版本前置檢查**，嚴禁產生與專案版本衝突的語法：
+
+### 1. C# 專案版本適配規則 (讀取 `.csproj` 與 `App.config`)
+- **舊版專案（`<TargetFrameworkVersion>v4.x` / .NET Framework 4.5~4.8）**：
+  - **強制切換為 C# 7.3 嚴格相容模式**。
+  - 使用傳統區塊命名空間 `namespace MyProject { ... }`，禁止使用 C# 10 的 file-scoped namespace。
+  - 明確型別宣告 `new List<TourStep>()`，禁止使用 C# 9 的 target-typed `new()`。
+  - 嚴禁使用 C# 8.0+ 的 Nullable 參考型別（如 `string?`）與 `switch` 運算式。
+- **新版專案（`<TargetFramework>net6.0` / `net8.0-windows` 等）**：
+  - 自動檢查 `<Nullable>` 與 `<ImplicitUsings>` 設定，動態調整生成代碼的型別標記與 `using` 引用。
+- **模板最大相容性原則**：
+  - 核心模板檔（如 `WpfTourEngine.cs`、`WinFormsTourEngine.cs`）本身必須以 **C# 7.3 零外部依賴標準語法** 撰寫，確保從 .NET Framework 4.5 到 .NET 8 都能 100% 免改動直接編譯通過。
+
+### 2. UI 框架與資源字典衝突防呆
+- 在修改 WPF `App.xaml` 或 `MainWindow.xaml` 前，**必須先檢查專案是否已引入第三方 UI 套件**（如 `MaterialDesignThemes`、`HandyControl`、`MahApps.Metro`、`DevExpress`）。
+- **防呆保護**：若已存在第三方 UI 庫，**僅注入色彩筆刷變數（`Color` / `SolidColorBrush`）與版面結構容器（`Grid` / `DockPanel`）**，嚴禁強行覆蓋第三方元件的預設 `ControlTemplate`，避免破壞原有 UI 風格。
+
+### 3. Web 專案打包架構自動判定
+- **無 `package.json`（純單檔 HTML / 靜態頁面）**：強制採用零依賴內嵌式（Inline）原生 CSS/JS 語法，支援純本機離線開啟。
+- **有 `package.json`（React / Vue / Vite / Webpack）**：自動判斷採用 ES Module 匯入風格，並適配框架的生命週期掛載（如 React `useEffect` 或 Vue `onMounted`）。
+
+---
+
 ## 🎨 1. 工業級深色主題 (Industrial Slate Dark)
 所有前端網頁與 C# 桌面視窗**嚴禁使用刺眼純色（如 `#FF0000`, `#0000FF`）**，統一預設採用以下符合 WCAG AA 規範之色票：
 - **主畫布底色 (Bg-Primary)**：`#0F172A` (Slate 900)

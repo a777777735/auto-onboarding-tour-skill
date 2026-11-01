@@ -45,7 +45,7 @@ namespace AutoOnboardingTour.Wpf
                     BeforeShowAsync = () =>
                     {
                         value();
-                        return Task.CompletedTask;
+                        return Task.FromResult<object>(null);
                     };
                 }
             }

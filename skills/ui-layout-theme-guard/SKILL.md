@@ -13,6 +13,22 @@ trigger_condition: 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C
 
 ---
 
+## 🔍 Step 0: 環境與版本前置偵測 (Environment & Version Pre-flight Check)
+
+在產生或修改任何介面代碼前，AI **必須先執行環境與版本前置審查**：
+
+1. **C# 專案版本判斷 (讀取 `.csproj`)**：
+   - **.NET Framework 4.5~4.8**：強制切換為 **C# 7.3 嚴格相容模式**（傳統區塊 namespace、明確宣告型別、不使用 Nullable 參考型別標記 `?` 或 `switch` 運算式）。
+   - **.NET 6 / .NET 8**：檢查 `<Nullable>` 與 `<ImplicitUsings>` 設定，靈活配合型別宣告與 `using` 引用。
+2. **第三方 UI 套件衝突防呆**：
+   - 檢查專案是否已引入第三方 UI 庫（如 `MaterialDesignThemes`、`HandyControl`、`MahApps.Metro`、`DevExpress`）。
+   - **防呆保護**：若存在第三方 UI 庫，**僅注入色彩變數（`Color` / `SolidColorBrush`）與網格結構（`Grid` / `DockPanel`）**，嚴格禁止覆蓋第三方元件預設的 `ControlTemplate`，避免損毀原有視覺風格。
+3. **Web 打包架構判定**：
+   - **無 `package.json`（純單檔 HTML）**：強制採用零依賴原生內嵌 CSS 變數與 App Shell。
+   - **有 `package.json`（React / Vue / Vite）**：以模組化樣式（CSS Modules、Tailwind 或變數檔案）輸出，並適配框架生命週期。
+
+---
+
 ## 🎨 1. 統一色票系統 (Industrial Slate Dark)
 所有介面預設遵循此套經過 WCAG AA 對比度檢驗的專業工業級色票，**嚴禁隨機硬編碼刺眼純色（如 `#FF0000`, `#0000FF`, `#00FF00`）**：
 
@@ -51,7 +67,7 @@ trigger_condition: 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C
    - 必須採用 `Grid`（顯式定義 `RowDefinitions` 與 `ColumnDefinitions`，善用 `*` 比例與 `Auto` 彈性伸縮），或組合 `DockPanel`、`StackPanel`。
 2. **ResourceDictionary 集中管理**：
    - 所有筆刷必須在 `Window.Resources` 或 `App.xaml` 中宣告為 `SolidColorBrush` 資源索引鍵（Key）。
-   - 控制項外觀透過全域 `Style` 統一管理（統一 `Button`、`TextBox`、`Border` 圓角 `CornerRadius="6"`），嚴禁個別硬編碼。
+   - 若無第三方 UI 庫，控制項外觀透過全域 `Style` 統一管理（統一 `Button`、`TextBox`、`Border` 圓角 `CornerRadius="6"`）。
 3. **垂直置中與內距規範**：
    - 所有 `TextBox`、`ComboBox`、`Button` 必須設定 `VerticalContentAlignment="Center"`，文字不得貼緊頂部。
 
@@ -68,5 +84,5 @@ trigger_condition: 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C
 ---
 
 ## 📦 零依賴樣板庫引用
-- **Web App Shell**：可直接參照或內嵌 `templates/web-app-shell.css`。
-- **WPF ResourceDictionary**：可直接參照或載入 `templates/WpfIndustrialTheme.xaml`。
+- **Web App Shell**：`templates/web-app-shell.css`。
+- **WPF ResourceDictionary**：`templates/WpfIndustrialTheme.xaml`。
