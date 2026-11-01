@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniAnalytics - 智慧營運決策儀表板 (Onboarding Tour 示範)</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-bottom: 40px;
+    }
+
+    /* 頂部導航 */
+    .navbar {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text-main);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* 主容器 */
+    .container {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 0 20px;
+    }
+
+    /* 卡片通用樣式 */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    /* 區塊標題 */
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 匯入區域 */
+    .import-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-outline {
+      background: #fff;
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background-color: #f1f5f9;
+    }
+
+    .btn-success {
+      background-color: var(--success);
+      color: #fff;
+    }
+    .btn-success:hover {
+      background-color: #059669;
+    }
+
+    /* 篩選控制器 */
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .control-group select,
+    .control-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 14px;
+      background-color: #fff;
+      outline: none;
+    }
+
+    /* KPI 卡片 */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .kpi-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 8px 0;
+      color: var(--text-main);
+    }
+
+    .kpi-badge {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--success);
+      background-color: #ecfdf5;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      display: inline-block;
+    }
+
+    /* Tabs 頁籤 */
+    .tabs-header {
+      display: flex;
+      gap: 8px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Canvas 容器 */
+    .chart-container {
+      width: 100%;
+      height: 280px;
+      position: relative;
+    }
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* 匯出區域 */
+    .export-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #fff;
+      border: 1px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 18px 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部導航 -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <span>OmniAnalytics Pro</span>
+    </div>
+    <div class="nav-actions">
+      <!-- 導覽啟動按鈕將自動由引擎注入，也可保留原生按鈕 -->
+      <span style="font-size: 13px; color: var(--text-muted);">v2.4 (Single File App)</span>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- 步驟 1：資料匯入區 -->
+    <section class="card" data-tour="step-import">
+      <div class="card-title">
+        <span>📥</span> 資料來源整合
+      </div>
+      <div class="import-bar">
+        <div>
+          <p style="font-size: 14px; color: var(--text-muted);">目前已連接預設營運數據集（2026 Q1 - Q4 即時數據流）</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-outline" id="btn-load-sample">載入電商範例資料</button>
+          <button class="btn btn-primary" id="btn-upload">上傳 CSV / JSON</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 步驟 2：核心參數與維度篩選 -->
+    <section class="card" data-tour="step-filters">
+      <div class="card-title">
+        <span>⚙️</span> 營運維度與時間參數設定
+      </div>
+      <div class="filter-grid">
+        <div class="control-group">
+          <label>時間區間</label>
+          <select id="filter-date">
+            <option>近 30 天 (Default)</option>
+            <option>本季度 (Q4)</option>
+            <option>全年度 (2026)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>目標市場</label>
+          <select id="filter-market">
+            <option>全球全通路 (Global)</option>
+            <option>亞太地區 (APAC)</option>
+            <option>北美市場 (NA)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>客群維度</label>
+          <select id="filter-segment">
+            <option>全體活躍客群</option>
+            <option>VIP 高價值會員</option>
+            <option>新註冊未付費</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- 步驟 3：KPI 核心指標卡片 -->
+    <section class="kpi-grid" data-tour="step-kpis">
+      <div class="kpi-card">
+        <div class="kpi-label">總營收 (GMV)</div>
+        <div class="kpi-value">$2,481,900</div>
+        <span class="kpi-badge">↑ +18.4% 成長</span>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">平均轉換率 (CVR)</div>
+        <div class="kpi-value">4.62%</div>
+        <span class="kpi-badge">↑ +0.8% 增長</span>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">月活躍用戶 (MAU)</div>
+        <div class="kpi-value">189,420</div>
+        <span class="kpi-badge">↑ +12.3% 成長</span>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">客戶滿意指數 (CSAT)</div>
+        <div class="kpi-value">94.8%</div>
+        <span class="kpi-badge">↑ 優異水準</span>
+      </div>
+    </section>
+
+    <!-- 標籤頁視圖區域 -->
+    <section class="card">
+      <div class="tabs-header">
+        <button class="tab-btn active" id="tab-overview" onclick="switchTab('overview')">📊 總體趨勢概覽</button>
+        <button class="tab-btn" id="tab-advanced" onclick="switchTab('advanced')">🔬 進階行為漏斗 (動態視圖)</button>
+      </div>
+
+      <!-- 標籤頁 1：概覽 -->
+      <div id="view-overview" class="tab-content active">
+        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 12px;">每月營業額與新客成長走勢圖</p>
+        <div class="chart-container">
+          <canvas id="overviewCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- 步驟 4：動態視圖（標籤頁 2：進階分析） -->
+      <div id="view-advanced" class="tab-content" data-tour="step-advanced">
+        <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px;">
+          <h4 style="font-size: 14px; color: #1e293b;">💡 進階用戶轉化漏斗分析</h4>
+          <p style="font-size: 13px; color: #64748b;">自動監控「訪客 $\rightarrow$ 加入購物車 $\rightarrow$ 進入結帳 $\rightarrow$ 成功付款」之流失率。</p>
+        </div>
+        <div class="chart-container">
+          <canvas id="funnelCanvas"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- 步驟 5：報表匯出與分享 -->
+    <section class="export-footer" data-tour="step-export">
+      <div>
+        <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">準備好分享您的分析成果了嗎？</h4>
+        <p style="font-size: 13px; color: var(--text-muted);">支援一鍵匯出高解析報表，或複製儀表板快照連結。</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-outline" onclick="alert('已複製分析數據至剪貼簿！')">複製分析摘要</button>
+        <button class="btn btn-success" onclick="alert('已為您下載 CSV 完整報表！')">匯出完整報表 (.CSV)</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 引用/內嵌導覽引擎邏輯 -->
+  <script src="../.agents/skills/auto-onboarding-tour/templates/tour-engine.js"></script>
+
+  <script>
+    // Tab 切換邏輯
+    function switchTab(tabName) {
+      const tabOverview = document.getElementById('tab-overview');
+      const tabAdvanced = document.getElementById('tab-advanced');
+      const viewOverview = document.getElementById('view-overview');
+      const viewAdvanced = document.getElementById('view-advanced');
+
+      if (tabName === 'overview') {
+        tabOverview.classList.add('active');
+        tabAdvanced.classList.remove('active');
+        viewOverview.classList.add('active');
+        viewAdvanced.classList.remove('active');
+        drawOverviewChart();
+      } else {
+        tabAdvanced.classList.add('active');
+        tabOverview.classList.remove('active');
+        viewAdvanced.classList.add('active');
+        viewOverview.classList.remove('active');
+        drawFunnelChart();
+      }
+    }
+
+    // 原生 Canvas 繪製圖表 (完全零依賴，不需第三方 Chart.js)
+    function drawOverviewChart() {
+      const canvas = document.getElementById('overviewCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // 背景輔助網格線
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      for (let y = 30; y < h - 20; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(40, y);
+        ctx.lineTo(w - 20, y);
+        ctx.stroke();
+      }
+
+      // 數據點
+      const data = [120, 150, 190, 220, 280, 260, 310, 350, 420];
+      const maxVal = 500;
+      const stepX = (w - 70) / (data.length - 1);
+
+      // 繪製平滑面積漸層
+      ctx.beginPath();
+      ctx.moveTo(50, h - 30);
+      data.forEach((val, i) => {
+        const x = 50 + i * stepX;
+        const y = (h - 40) - (val / maxVal) * (h - 80);
+        ctx.lineTo(x, y);
+      });
+      ctx.lineTo(50 + (data.length - 1) * stepX, h - 30);
+      ctx.closePath();
+
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
+      grad.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // 折線路徑
+      ctx.beginPath();
+      data.forEach((val, i) => {
+        const x = 50 + i * stepX;
+        const y = (h - 40) - (val / maxVal) * (h - 80);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // 繪製節點小圓球
+      data.forEach((val, i) => {
+        const x = 50 + i * stepX;
+        const y = (h - 40) - (val / maxVal) * (h - 80);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    function drawFunnelChart() {
+      const canvas = document.getElementById('funnelCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const stages = [
+        { label: '造訪頁面', count: '100%', widthRatio: 0.9, color: '#3b82f6' },
+        { label: '加入購物車', count: '54.2%', widthRatio: 0.72, color: '#60a5fa' },
+        { label: '發起結帳', count: '28.6%', widthRatio: 0.52, color: '#93c5fd' },
+        { label: '付款成功', count: '14.1%', widthRatio: 0.35, color: '#10b981' }
+      ];
+
+      const barHeight = 36;
+      const gap = 20;
+      const startY = 30;
+
+      stages.forEach((stage, idx) => {
+        const y = startY + idx * (barHeight + gap);
+        const barWidth = (w - 180) * stage.widthRatio;
+
+        // 標籤
+        ctx.fillStyle = '#334155';
+        ctx.font = '600 13px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(stage.label, 30, y + 22);
+
+        // 長條
+        ctx.fillStyle = stage.color;
+        ctx.beginPath();
+        ctx.roundRect(130, y, barWidth, barHeight, 6);
+        ctx.fill();
+
+        // 數值百分比
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 12px sans-serif';
+        ctx.fillText(stage.count, 140, y + 22);
+      });
+    }
+
+    // 初始化視圖圖表
+    window.addEventListener('load', () => {
+      drawOverviewChart();
+    });
+    window.addEventListener('resize', () => {
+      drawOverviewChart();
+      drawFunnelChart();
+    });
+
+    // -------------------------------------------------------------
+    // Onboarding Tour 導覽配置實例 (示範 auto-onboarding-tour Skill)
+    // -------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      const tour = new OnboardingTour({
+        storageKey: 'omni_analytics_demo_tour_v1',
+        spotlightPadding: 10,
+        steps: [
+          {
+            target: '[data-tour="step-import"]',
+            title: '步驟 1：匯入營運數據',
+            content: '歡迎來到 OmniAnalytics！首先在此點擊上傳 CSV/JSON 資料，或載入預設範例以展開探索。',
+            placement: 'bottom'
+          },
+          {
+            target: '[data-tour="step-filters"]',
+            title: '步驟 2：維度與時間過濾',
+            content: '透過時間區間、目標市場與客群下拉選單，即時過濾並動態運算所有統計指標。',
+            placement: 'bottom'
+          },
+          {
+            target: '[data-tour="step-kpis"]',
+            title: '步驟 3：即時核心指標 (KPI)',
+            content: '快速總覽營收、轉化率 (CVR)、月活躍人數等關鍵業績數據，掌握團隊脈動。',
+            placement: 'top'
+          },
+          {
+            target: '[data-tour="step-advanced"]',
+            title: '步驟 4：進階動態視圖探勘',
+            content: '這是一個動態頁籤！導覽引擎透過 beforeShow 鉤子自動為您切換至「進階行為漏斗」，呈現深層流失分析。',
+            placement: 'top',
+            beforeShow: async () => {
+              // 透過 beforeShow 先觸發頁籤切換
+              switchTab('advanced');
+              // 稍候 100ms 確保圖表 Canvas 與 DOM 繪製完成
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          },
+          {
+            target: '[data-tour="step-export"]',
+            title: '步驟 5：報表儲存與分享',
+            content: '最後，完成探索後可一鍵匯出 CSV 報表或複製摘要，輕鬆與跨部門夥伴分享洞察！',
+            placement: 'top'
+          }
+        ],
+        onComplete: () => {
+          console.log('恭喜完成 OmniAnalytics 操作導覽！');
+        }
+      });
+
+      // 建立常駐右上角的「❓ 操作導覽」按鈕
+      OnboardingTour.createLauncherButton({
+        text: '操作導覽',
+        onClick: () => {
+          // 若之前留在進階頁籤，先重置為 overview
+          switchTab('overview');
+          tour.start(0);
+        }
+      });
+
+      // 若首次打開頁面，自動彈出導覽
+      tour.startIfFirstTime();
+    });
+  </script>
+</body>
+</html>
