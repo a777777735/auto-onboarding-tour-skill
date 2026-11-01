@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberFactory - 工業設備智慧監控儀表板 (Standards Demo)</title>
+  <style>
+    /* 引入工業深色色票與 App Shell 佈局 */
+    :root {
+      --bg-primary: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-elevated: #334155;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --space-sm: 8px;
+      --space-md: 12px;
+      --space-lg: 16px;
+      --space-xl: 24px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden; /* App Shell 視窗鎖定，防雙重滾動條 */
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* 頂部列 */
+    .navbar {
+      height: 56px;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-xl);
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .brand-badge {
+      background: var(--primary);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+
+    /* 主工作主體 */
+    .workspace {
+      display: flex;
+      flex: 1;
+      min-height: 0; /* 關鍵：防 Flex 容器破版 */
+    }
+
+    /* 側邊導航 */
+    .sidebar {
+      width: 220px;
+      background-color: var(--bg-surface);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding: var(--space-lg);
+      gap: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .nav-item:hover, .nav-item.active {
+      background-color: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+    .nav-item.active {
+      border-left: 3px solid var(--primary);
+    }
+
+    /* 主要內容滾動區 (全域唯一捲軸) */
+    .content-area {
+      flex: 1;
+      min-width: 0; /* 關鍵：防內部圖表/表格撐破 Grid */
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: var(--space-xl);
+    }
+
+    /* 工業卡片 */
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* KPI 卡片網格 */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    .kpi-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+    .kpi-label { font-size: 12.5px; color: var(--text-muted); }
+    .kpi-value { font-size: 26px; font-weight: 800; margin: 6px 0; }
+    .kpi-status {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--success);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 按鈕與表單 */
+    .btn {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-outline:hover { background: #475569; }
+
+    select {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      font-size: 13px;
+    }
+
+    /* Canvas 容器 (防撐破) */
+    .chart-box {
+      width: 100%;
+      height: 240px;
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+    }
+    canvas { width: 100% !important; height: 100% !important; }
+
+    /* 頁籤控制 */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: var(--space-md);
+    }
+    .tab-btn {
+      padding: 8px 14px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13.5px;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+    
+    <!-- 頂部導航 -->
+    <header class="navbar">
+      <div class="brand">
+        <span class="brand-badge">PRO</span>
+        <span>CyberFactory 設備監控中央戰情室</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 12.5px; color: var(--text-muted);">系統狀態：<strong style="color: var(--success);">全產線連線正常</strong></span>
+      </div>
+    </header>
+
+    <div class="workspace">
+      
+      <!-- 側邊欄 -->
+      <aside class="sidebar">
+        <div class="nav-item active">📊 總體監控概覽</div>
+        <div class="nav-item">⚙️ 機台參數設定</div>
+        <div class="nav-item">⚠️ 異常日誌中心</div>
+        <div class="nav-item">📜 報表匯出排程</div>
+      </aside>
+
+      <!-- 主要工作內容 (獨立捲動) -->
+      <main class="content-area">
+        
+        <!-- Step 1: 設備資料整合 -->
+        <section class="card" data-tour="step-device-source">
+          <div class="card-header">
+            <span class="card-title">🔌 設備通訊閘道器 (IoT Gateway)</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-outline" onclick="alert('已重新掃描 Modbus/OPC-UA 節點')">掃描通訊節點</button>
+              <button class="btn btn-primary" onclick="alert('已同步最新 PLC 暫存器數據')">同步即時遙測</button>
+            </div>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted);">已連接 16 組 CNC 車銑複合機、8 組工業機械手臂。採集頻率：100ms。</p>
+        </section>
+
+        <!-- Step 2: 參數篩選 -->
+        <section class="card" data-tour="step-parameters">
+          <div class="card-header">
+            <span class="card-title">🎛️ 監控條件與感測器維度過濾</span>
+          </div>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div>
+              <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">目標廠區</label>
+              <select id="sel-factory">
+                <option>台中一廠 (智慧製造示範區)</option>
+                <option>台南二廠 (航太加工專區)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">監控感測維度</label>
+              <select id="sel-metric">
+                <option>主軸三軸振動值 (Vibration RMS)</option>
+                <option>伺服馬達負載率 (Load Factor %)</option>
+                <option>主軸切削溫度 (°C)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 3: 即時核心指標 KPI -->
+        <div class="kpi-grid" data-tour="step-kpis">
+          <div class="kpi-card">
+            <div class="kpi-label">總合設備效率 (OEE)</div>
+            <div class="kpi-value">88.4%</div>
+            <div class="kpi-status">● 達到世界級標竿</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">即時生產總產出</div>
+            <div class="kpi-value">14,290 件</div>
+            <div class="kpi-status">● 達成率 103.2%</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">平均無故障時間 (MTBF)</div>
+            <div class="kpi-value">720 小時</div>
+            <div class="kpi-status">● 連續穩定運轉中</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">能耗指數 (kWh/件)</div>
+            <div class="kpi-value">0.42</div>
+            <div class="kpi-status">● 綠色節能優異</div>
+          </div>
+        </div>
+
+        <!-- Step 4: 動態視圖 (診斷頁籤) -->
+        <section class="card">
+          <div class="tab-nav">
+            <button class="tab-btn active" id="btn-tab-trend" onclick="switchMonitorTab('trend')">即時振動波形趨勢</button>
+            <button class="tab-btn" id="btn-tab-diagnose" onclick="switchMonitorTab('diagnose')">AI 預測性維護頻譜 (動態視圖)</button>
+          </div>
+
+          <div id="pane-trend" class="tab-pane active">
+            <div class="chart-box">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+
+          <div id="pane-diagnose" class="tab-pane" data-tour="step-diagnose">
+            <div style="background: var(--bg-elevated); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <h4 style="font-size: 13.5px; color: var(--text-primary); margin-bottom: 4px;">🧠 AI 軸承早期損傷預警</h4>
+              <p style="font-size: 12.5px; color: var(--text-muted);">經由 FFT 快速傅立葉轉換分析，主軸滾珠軸承 BPFI 特徵頻率健康度為 96.8% (無點蝕跡象)。</p>
+            </div>
+            <div class="chart-box">
+              <canvas id="diagnoseChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 5: 匯出與發布 -->
+        <section class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;" data-tour="step-export">
+          <div>
+            <h4 style="font-size: 14px; font-weight: 700;">班次稼動分析日報表</h4>
+            <p style="font-size: 12.5px; color: var(--text-muted);">自動統整各站點停機要因、稼動率與能源消耗統計。</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" onclick="alert('已複製戰情摘要快照')">複製分析快照</button>
+            <button class="btn btn-primary" onclick="alert('已產出並下載工業日報 (CSV/PDF)')">一鍵產出日報</button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- 引入原生導覽引擎 -->
+  <script src="../skills/auto-onboarding-tour/templates/tour-engine.js"></script>
+
+  <script>
+    // Tab 切換邏輯
+    function switchMonitorTab(tab) {
+      const btnTrend = document.getElementById('btn-tab-trend');
+      const btnDiag = document.getElementById('btn-tab-diagnose');
+      const paneTrend = document.getElementById('pane-trend');
+      const paneDiag = document.getElementById('pane-diagnose');
+
+      if (tab === 'trend') {
+        btnTrend.classList.add('active');
+        btnDiag.classList.remove('active');
+        paneTrend.classList.add('active');
+        paneDiag.classList.remove('active');
+        renderTrend();
+      } else {
+        btnDiag.classList.add('active');
+        btnTrend.classList.remove('active');
+        paneDiag.classList.add('active');
+        paneTrend.classList.remove('active');
+        renderDiagnose();
+      }
+    }
+
+    // 原生 Canvas 繪製圖表 (完全零依賴)
+    function renderTrend() {
+      const cvs = document.getElementById('trendChart');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const r = cvs.getBoundingClientRect();
+      cvs.width = r.width * dpr;
+      cvs.height = r.height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = r.width, h = r.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      for (let y = 30; y < h - 20; y += 40) {
+        ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w - 20, y); ctx.stroke();
+      }
+
+      const points = [1.2, 1.4, 1.8, 1.6, 2.1, 2.0, 2.5, 2.3, 2.8, 2.4, 2.7, 2.9];
+      const maxVal = 4.0;
+      const stepX = (w - 70) / (points.length - 1);
+
+      ctx.beginPath();
+      points.forEach((v, i) => {
+        const x = 50 + i * stepX;
+        const y = (h - 30) - (v / maxVal) * (h - 60);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    function renderDiagnose() {
+      const cvs = document.getElementById('diagnoseChart');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const r = cvs.getBoundingClientRect();
+      cvs.width = r.width * dpr;
+      cvs.height = r.height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = r.width, h = r.height;
+
+      ctx.clearRect(0, 0, w, h);
+      const bars = [15, 28, 42, 65, 80, 55, 30, 20, 10];
+      const barW = (w - 80) / bars.length - 8;
+      bars.forEach((v, i) => {
+        const x = 50 + i * (barW + 8);
+        const barH = (v / 100) * (h - 60);
+        const y = (h - 30) - barH;
+        ctx.fillStyle = v > 70 ? '#f59e0b' : '#10b981';
+        ctx.beginPath();
+        ctx.roundRect(x, y, barW, barH, 4);
+        ctx.fill();
+      });
+    }
+
+    window.addEventListener('load', () => { renderTrend(); });
+    window.addEventListener('resize', () => { renderTrend(); renderDiagnose(); });
+
+    // 初始化操作導覽
+    document.addEventListener('DOMContentLoaded', () => {
+      const tour = new OnboardingTour({
+        storageKey: 'cyber_factory_demo_tour',
+        steps: [
+          {
+            target: '[data-tour="step-device-source"]',
+            title: '步驟 1：通訊閘道器連線',
+            content: '在此掌握全廠區 IoT 節點連線狀態，並可即時同步 PLC 暫存器數據。',
+            placement: 'bottom'
+          },
+          {
+            target: '[data-tour="step-parameters"]',
+            title: '步驟 2：感測維度過濾',
+            content: '透過廠區與振動、負載等維度下拉選單，即時鎖定異常設備目標。',
+            placement: 'bottom'
+          },
+          {
+            target: '[data-tour="step-kpis"]',
+            title: '步驟 3：即時 OEE 核心指標',
+            content: '直覺檢視設備總合稼動率、連續運轉 MTBF 與節能指標。',
+            placement: 'top'
+          },
+          {
+            target: '[data-tour="step-diagnose"]',
+            title: '步驟 4：AI 預測性維護視圖',
+            content: '這是動態頁籤！導覽引擎透過 beforeShow 鉤子自動切換至「頻譜診斷」頁面。',
+            placement: 'top',
+            beforeShow: async () => {
+              switchMonitorTab('diagnose');
+              await new Promise(r => setTimeout(r, 100));
+            }
+          },
+          {
+            target: '[data-tour="step-export"]',
+            title: '步驟 5：一鍵產出日報',
+            content: '隨時匯出班次分析摘要與報表，協助產線團隊快速復盤！',
+            placement: 'top'
+          }
+        ]
+      });
+
+      // 建立右上角「❓ 操作導覽」按鈕
+      OnboardingTour.createLauncherButton({
+        text: '操作導覽',
+        onClick: () => {
+          switchMonitorTab('trend');
+          tour.start(0);
+        }
+      });
+
+      tour.startIfFirstTime();
+    });
+  </script>
+</body>
+</html>
