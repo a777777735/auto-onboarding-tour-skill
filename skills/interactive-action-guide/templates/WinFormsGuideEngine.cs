@@ -5,9 +5,9 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
 
-namespace AutoOnboardingTour.WinForms
+namespace InteractiveActionGuide.WinForms
 {
-    public enum TourPlacement
+    public enum GuidePlacement
     {
         Top,
         Bottom,
@@ -16,17 +16,29 @@ namespace AutoOnboardingTour.WinForms
     }
 
     /// <summary>
-    /// WinForms 單一步驟配置
+    /// 定義 WinForms 實戰互動引導步驟
     /// </summary>
-    public class WinFormsTourStep
+    public class GuideStep
     {
-        /// <summary>
-        /// 目標控制項：支援控制項名稱 (string) 或 Control 實體
-        /// </summary>
         public object Target { get; set; }
         public string Title { get; set; }
         public string Content { get; set; }
-        public TourPlacement Placement { get; set; } = TourPlacement.Bottom;
+        public GuidePlacement Placement { get; set; } = GuidePlacement.Bottom;
+
+        /// <summary>
+        /// 是否在目標控制項被真實點擊 (Click) 時自動跳下一步
+        /// </summary>
+        public bool AdvanceOnClick { get; set; } = true;
+
+        /// <summary>
+        /// 針對 TextBox：文字變更時的檢驗委派，返回 true 則自動跳下一步
+        /// </summary>
+        public Predicate<string> AdvanceOnTextValidate { get; set; }
+
+        /// <summary>
+        /// 針對 ComboBox：選單切換時是否自動跳下一步
+        /// </summary>
+        public bool AdvanceOnSelectionChange { get; set; }
 
         /// <summary>
         /// 顯示此步驟前執行的委派（例如切換 tabControl1.SelectedIndex = 1）
@@ -35,44 +47,44 @@ namespace AutoOnboardingTour.WinForms
     }
 
     /// <summary>
-    /// WinForms 零依賴純原生聚光燈導覽引擎
-    /// 使用貼合主視窗的無邊框 Overlay Form 搭配 Region 挖洞鏤空與浮動說明卡片
+    /// WinForms 實戰互動導引引擎 (C# 7.3 嚴格相容)
     /// </summary>
-    public class WinFormsTourManager
+    public class WinFormsInteractiveGuideManager
     {
         private readonly Form _mainForm;
-        private readonly List<WinFormsTourStep> _steps = new List<WinFormsTourStep>();
-        private TourOverlayForm _overlayForm;
+        private readonly List<GuideStep> _steps = new List<GuideStep>();
+        private GuideOverlayForm _overlayForm;
         private int _currentIndex = -1;
 
-        public string StorageKey { get; set; } = "winforms_tour_completed";
+        public string StorageKey { get; set; } = "iag_winforms_guide_completed";
         public int SpotlightPadding { get; set; } = 8;
-        public IReadOnlyList<WinFormsTourStep> Steps => _steps;
+        public IReadOnlyList<GuideStep> Steps => _steps;
         public bool IsActive => _overlayForm != null && !_overlayForm.IsDisposed && _overlayForm.Visible;
 
-        public event EventHandler TourCompleted;
-        public event EventHandler TourSkipped;
+        public event EventHandler GuideCompleted;
+        public event EventHandler GuideSkipped;
         public event EventHandler<int> StepChanged;
 
-        public WinFormsTourManager(Form mainForm)
+        public WinFormsInteractiveGuideManager(Form mainForm)
         {
             _mainForm = mainForm ?? throw new ArgumentNullException(nameof(mainForm));
         }
 
-        public WinFormsTourManager AddStep(WinFormsTourStep step)
+        public WinFormsInteractiveGuideManager AddStep(GuideStep step)
         {
             if (step != null) _steps.Add(step);
             return this;
         }
 
-        public WinFormsTourManager AddStep(string controlName, string title, string content, TourPlacement placement = TourPlacement.Bottom, Action beforeShow = null)
+        public WinFormsInteractiveGuideManager AddStep(string controlName, string title, string content, GuidePlacement placement = GuidePlacement.Bottom, bool advanceOnClick = true, Action beforeShow = null)
         {
-            _steps.Add(new WinFormsTourStep
+            _steps.Add(new GuideStep
             {
                 Target = controlName,
                 Title = title,
                 Content = content,
                 Placement = placement,
+                AdvanceOnClick = advanceOnClick,
                 BeforeShow = beforeShow
             });
             return this;
@@ -90,7 +102,7 @@ namespace AutoOnboardingTour.WinForms
         private string GetStorageFilePath()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string dir = Path.Combine(appData, "AutoOnboardingTour");
+            string dir = Path.Combine(appData, "InteractiveActionGuide");
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             return Path.Combine(dir, $"{StorageKey}.flag");
         }
@@ -101,7 +113,7 @@ namespace AutoOnboardingTour.WinForms
 
             if (_overlayForm == null || _overlayForm.IsDisposed)
             {
-                _overlayForm = new TourOverlayForm(_mainForm, this);
+                _overlayForm = new GuideOverlayForm(_mainForm, this);
             }
 
             _overlayForm.Show(_mainForm);
@@ -120,11 +132,11 @@ namespace AutoOnboardingTour.WinForms
             try
             {
                 step.BeforeShow?.Invoke();
-                Application.DoEvents(); // 讓介面即時刷新（如 Tab 切換）
+                Application.DoEvents();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[WinFormsTour] BeforeShow error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[InteractiveGuide] BeforeShow error: {ex.Message}");
             }
 
             _overlayForm?.RenderStep(step, _currentIndex, _steps.Count);
@@ -155,14 +167,14 @@ namespace AutoOnboardingTour.WinForms
         {
             SaveCompletionFlag();
             Stop();
-            TourCompleted?.Invoke(this, EventArgs.Empty);
+            GuideCompleted?.Invoke(this, EventArgs.Empty);
         }
 
         public void Skip()
         {
             SaveCompletionFlag();
             Stop();
-            TourSkipped?.Invoke(this, EventArgs.Empty);
+            GuideSkipped?.Invoke(this, EventArgs.Empty);
         }
 
         public void Stop()
@@ -196,19 +208,17 @@ namespace AutoOnboardingTour.WinForms
             return null;
         }
 
-        /// <summary>
-        /// 貼合於主 Form 之上的無邊框半透明遮罩視窗
-        /// </summary>
-        private class TourOverlayForm : Form
+        private class GuideOverlayForm : Form
         {
             private readonly Form _ownerForm;
-            private readonly WinFormsTourManager _manager;
+            private readonly WinFormsInteractiveGuideManager _manager;
             private readonly Panel _cardPanel;
             private Rectangle _targetHoleRect = Rectangle.Empty;
             private Control _currentTargetControl;
-            private WinFormsTourStep _currentStep;
+            private GuideStep _currentStep;
+            private Action _cleanupListener;
 
-            public TourOverlayForm(Form ownerForm, WinFormsTourManager manager)
+            public GuideOverlayForm(Form ownerForm, WinFormsInteractiveGuideManager manager)
             {
                 _ownerForm = ownerForm;
                 _manager = manager;
@@ -229,7 +239,6 @@ namespace AutoOnboardingTour.WinForms
                 };
                 Controls.Add(_cardPanel);
 
-                // 綁定主視窗跟隨事件
                 _ownerForm.LocationChanged += (s, e) => SyncBoundsWithMainForm();
                 _ownerForm.SizeChanged += (s, e) => SyncBoundsWithMainForm();
                 _ownerForm.FormClosing += (s, e) => Close();
@@ -238,25 +247,28 @@ namespace AutoOnboardingTour.WinForms
             public void SyncBoundsWithMainForm()
             {
                 if (_ownerForm == null || _ownerForm.IsDisposed) return;
-
                 var clientRect = _ownerForm.RectangleToScreen(_ownerForm.ClientRectangle);
                 Bounds = clientRect;
                 RecomputeHoleAndCardPosition();
             }
 
-            public void RenderStep(WinFormsTourStep step, int index, int total)
+            public void RenderStep(GuideStep step, int index, int total)
             {
+                ClearListener();
                 _currentStep = step;
                 _currentTargetControl = _manager.FindControl(step.Target);
+
+                // 綁定真實操作監聽
+                BindTargetEvents(step);
 
                 _cardPanel.SuspendLayout();
                 _cardPanel.Controls.Clear();
 
-                // 標題 + 關閉按鈕
+                // 標題 + 關閉
                 var lblTitle = new Label
                 {
-                    Text = step.Title,
-                    Font = new Font("Microsoft JhengHei UI", 11.5f, FontStyle.Bold),
+                    Text = "👉 " + step.Title,
+                    Font = new Font("Microsoft JhengHei UI", 11f, FontStyle.Bold),
                     ForeColor = Color.FromArgb(15, 23, 42),
                     Location = new Point(14, 14),
                     AutoSize = true
@@ -275,10 +287,10 @@ namespace AutoOnboardingTour.WinForms
                 btnClose.FlatAppearance.BorderSize = 0;
                 btnClose.Click += (s, e) => _manager.Skip();
 
-                // 進度條裝飾
+                // 進度條
                 var pnlProgress = new Panel
                 {
-                    Location = new Point(14, 42),
+                    Location = new Point(14, 40),
                     Size = new Size(_cardPanel.Width - 28, 4),
                     BackColor = Color.FromArgb(226, 232, 240)
                 };
@@ -286,19 +298,32 @@ namespace AutoOnboardingTour.WinForms
                 {
                     Dock = DockStyle.Left,
                     Width = (int)((_cardPanel.Width - 28) * ((double)(index + 1) / total)),
-                    BackColor = Color.FromArgb(37, 99, 235)
+                    BackColor = Color.FromArgb(2, 132, 199)
                 };
                 pnlProgress.Controls.Add(pnlFill);
 
-                // 內文
+                // 說明文字
                 var lblContent = new Label
                 {
                     Text = step.Content,
-                    Font = new Font("Microsoft JhengHei UI", 9.5f),
+                    Font = new Font("Microsoft JhengHei UI", 9f),
                     ForeColor = Color.FromArgb(71, 85, 105),
-                    Location = new Point(14, 56),
-                    Size = new Size(_cardPanel.Width - 28, 56),
+                    Location = new Point(14, 52),
+                    Size = new Size(_cardPanel.Width - 28, 40),
                     AutoEllipsis = true
+                };
+
+                // 操作提示 Badge
+                var lblBadge = new Label
+                {
+                    Text = "🎯 請在上方高亮控制項中操作以繼續",
+                    Font = new Font("Microsoft JhengHei UI", 8.5f, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(3, 105, 161),
+                    BackColor = Color.FromArgb(240, 249, 255),
+                    Location = new Point(14, 96),
+                    Size = new Size(_cardPanel.Width - 28, 22),
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    Padding = new Padding(4, 0, 0, 0)
                 };
 
                 // 計數
@@ -307,20 +332,19 @@ namespace AutoOnboardingTour.WinForms
                     Text = $"{index + 1} / {total}",
                     Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                     ForeColor = Color.FromArgb(100, 116, 139),
-                    Location = new Point(14, 122),
+                    Location = new Point(14, 128),
                     AutoSize = true
                 };
 
-                // 按鈕
                 var btnNext = new Button
                 {
                     Text = index == total - 1 ? "完成" : "下一步",
-                    Size = new Size(68, 28),
-                    Location = new Point(_cardPanel.Width - 82, 116),
+                    Size = new Size(64, 26),
+                    Location = new Point(_cardPanel.Width - 78, 124),
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(37, 99, 235),
+                    BackColor = Color.FromArgb(2, 132, 199),
                     ForeColor = Color.White,
-                    Font = new Font("Microsoft JhengHei UI", 9f, FontStyle.Bold),
+                    Font = new Font("Microsoft JhengHei UI", 8.5f, FontStyle.Bold),
                     Cursor = Cursors.Hand
                 };
                 btnNext.FlatAppearance.BorderSize = 0;
@@ -329,12 +353,12 @@ namespace AutoOnboardingTour.WinForms
                 var btnPrev = new Button
                 {
                     Text = "上一步",
-                    Size = new Size(62, 28),
-                    Location = new Point(btnNext.Left - 68, 116),
+                    Size = new Size(58, 26),
+                    Location = new Point(btnNext.Left - 64, 124),
                     FlatStyle = FlatStyle.Flat,
                     BackColor = Color.FromArgb(241, 245, 249),
                     ForeColor = Color.FromArgb(51, 65, 85),
-                    Font = new Font("Microsoft JhengHei UI", 9f),
+                    Font = new Font("Microsoft JhengHei UI", 8.5f),
                     Cursor = Cursors.Hand,
                     Visible = index > 0
                 };
@@ -344,22 +368,23 @@ namespace AutoOnboardingTour.WinForms
                 var btnSkip = new Button
                 {
                     Text = "跳過",
-                    Size = new Size(50, 28),
-                    Location = new Point((btnPrev.Visible ? btnPrev.Left : btnNext.Left) - 54, 116),
+                    Size = new Size(46, 26),
+                    Location = new Point((btnPrev.Visible ? btnPrev.Left : btnNext.Left) - 50, 124),
                     FlatStyle = FlatStyle.Flat,
                     BackColor = Color.Transparent,
                     ForeColor = Color.FromArgb(100, 116, 139),
-                    Font = new Font("Microsoft JhengHei UI", 9f),
+                    Font = new Font("Microsoft JhengHei UI", 8.5f),
                     Cursor = Cursors.Hand
                 };
                 btnSkip.FlatAppearance.BorderSize = 0;
                 btnSkip.Click += (s, e) => _manager.Skip();
 
-                _cardPanel.Height = 158;
+                _cardPanel.Height = 160;
                 _cardPanel.Controls.Add(lblTitle);
                 _cardPanel.Controls.Add(btnClose);
                 _cardPanel.Controls.Add(pnlProgress);
                 _cardPanel.Controls.Add(lblContent);
+                _cardPanel.Controls.Add(lblBadge);
                 _cardPanel.Controls.Add(lblCounter);
                 _cardPanel.Controls.Add(btnSkip);
                 _cardPanel.Controls.Add(btnPrev);
@@ -367,6 +392,69 @@ namespace AutoOnboardingTour.WinForms
                 _cardPanel.ResumeLayout(true);
 
                 RecomputeHoleAndCardPosition();
+            }
+
+            private void BindTargetEvents(GuideStep step)
+            {
+                if (_currentTargetControl == null) return;
+
+                if (step.AdvanceOnClick)
+                {
+                    EventHandler clickHandler = null;
+                    clickHandler = (s, e) =>
+                    {
+                        _currentTargetControl.Click -= clickHandler;
+                        AdvanceWithDelay();
+                    };
+                    _currentTargetControl.Click += clickHandler;
+                    _cleanupListener = () => _currentTargetControl.Click -= clickHandler;
+                }
+                else if (step.AdvanceOnTextValidate != null && _currentTargetControl is TextBox tb)
+                {
+                    EventHandler textHandler = null;
+                    textHandler = (s, e) =>
+                    {
+                        if (step.AdvanceOnTextValidate(tb.Text))
+                        {
+                            tb.TextChanged -= textHandler;
+                            AdvanceWithDelay();
+                        }
+                    };
+                    tb.TextChanged += textHandler;
+                    _cleanupListener = () => tb.TextChanged -= textHandler;
+                }
+                else if (step.AdvanceOnSelectionChange && _currentTargetControl is ComboBox cb)
+                {
+                    EventHandler selHandler = null;
+                    selHandler = (s, e) =>
+                    {
+                        cb.SelectedIndexChanged -= selHandler;
+                        AdvanceWithDelay();
+                    };
+                    cb.SelectedIndexChanged += selHandler;
+                    _cleanupListener = () => cb.SelectedIndexChanged -= selHandler;
+                }
+            }
+
+            private void AdvanceWithDelay()
+            {
+                var timer = new Timer { Interval = 250 };
+                timer.Tick += (s, e) =>
+                {
+                    timer.Stop();
+                    timer.Dispose();
+                    if (_manager.IsActive) _manager.Next();
+                };
+                timer.Start();
+            }
+
+            private void ClearListener()
+            {
+                if (_cleanupListener != null)
+                {
+                    _cleanupListener();
+                    _cleanupListener = null;
+                }
             }
 
             private void RecomputeHoleAndCardPosition()
@@ -384,7 +472,7 @@ namespace AutoOnboardingTour.WinForms
                         screenRect.Height + p * 2
                     );
 
-                    // 使用 Region 挖洞鏤空，使目標區域完全通透並可穿透檢視
+                    // Region.Exclude 實現洞口穿透操作 (Click-Through)
                     var fullRegion = new Region(ClientRectangle);
                     fullRegion.Exclude(_targetHoleRect);
                     Region = fullRegion;
@@ -410,35 +498,33 @@ namespace AutoOnboardingTour.WinForms
 
                 if (!_targetHoleRect.IsEmpty)
                 {
-                    var placement = _currentStep?.Placement ?? TourPlacement.Bottom;
+                    var placement = _currentStep?.Placement ?? GuidePlacement.Bottom;
 
-                    // 智慧翻轉防溢出
-                    if (placement == TourPlacement.Bottom && _targetHoleRect.Bottom + margin + cardH > ClientSize.Height)
-                        placement = TourPlacement.Top;
-                    else if (placement == TourPlacement.Top && _targetHoleRect.Top - margin - cardH < 0)
-                        placement = TourPlacement.Bottom;
+                    if (placement == GuidePlacement.Bottom && _targetHoleRect.Bottom + margin + cardH > ClientSize.Height)
+                        placement = GuidePlacement.Top;
+                    else if (placement == GuidePlacement.Top && _targetHoleRect.Top - margin - cardH < 0)
+                        placement = GuidePlacement.Bottom;
 
                     switch (placement)
                     {
-                        case TourPlacement.Top:
+                        case GuidePlacement.Top:
                             y = _targetHoleRect.Top - cardH - margin;
                             x = _targetHoleRect.Left + (_targetHoleRect.Width - cardW) / 2;
                             break;
-                        case TourPlacement.Bottom:
+                        case GuidePlacement.Bottom:
                             y = _targetHoleRect.Bottom + margin;
                             x = _targetHoleRect.Left + (_targetHoleRect.Width - cardW) / 2;
                             break;
-                        case TourPlacement.Left:
+                        case GuidePlacement.Left:
                             x = _targetHoleRect.Left - cardW - margin;
                             y = _targetHoleRect.Top + (_targetHoleRect.Height - cardH) / 2;
                             break;
-                        case TourPlacement.Right:
+                        case GuidePlacement.Right:
                             x = _targetHoleRect.Right + margin;
                             y = _targetHoleRect.Top + (_targetHoleRect.Height - cardH) / 2;
                             break;
                     }
 
-                    // 防溢出邊界 Clamping
                     x = Math.Max(12, Math.Min(x, ClientSize.Width - cardW - 12));
                     y = Math.Max(12, Math.Min(y, ClientSize.Height - cardH - 12));
                 }
@@ -458,7 +544,7 @@ namespace AutoOnboardingTour.WinForms
                 if (!_targetHoleRect.IsEmpty)
                 {
                     e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    using (var pen = new Pen(Color.FromArgb(59, 130, 246), 2.5f))
+                    using (var pen = new Pen(Color.FromArgb(2, 132, 199), 2.5f))
                     {
                         e.Graphics.DrawRectangle(pen, _targetHoleRect);
                     }
@@ -467,16 +553,6 @@ namespace AutoOnboardingTour.WinForms
 
             protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
             {
-                if (keyData == Keys.Right)
-                {
-                    _manager.Next();
-                    return true;
-                }
-                if (keyData == Keys.Left)
-                {
-                    _manager.Prev();
-                    return true;
-                }
                 if (keyData == Keys.Escape)
                 {
                     _manager.Skip();

@@ -4,13 +4,14 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace AutoOnboardingTour.Wpf
+namespace InteractiveActionGuide.Wpf
 {
-    public enum TourPlacement
+    public enum GuidePlacement
     {
         Top,
         Bottom,
@@ -19,20 +20,33 @@ namespace AutoOnboardingTour.Wpf
     }
 
     /// <summary>
-    /// 定義單一步驟配置
+    /// 定義互動引導步驟
+    /// 支援四周鎖死、洞口穿透 (Click-Through) 與真實事件自動推進
     /// </summary>
-    public class WpfTourStep
+    public class GuideStep
     {
-        /// <summary>
-        /// 目標控制項：支援控制項名稱 (string) 或 FrameworkElement 實體
-        /// </summary>
         public object Target { get; set; }
         public string Title { get; set; }
         public string Content { get; set; }
-        public TourPlacement Placement { get; set; } = TourPlacement.Bottom;
+        public GuidePlacement Placement { get; set; } = GuidePlacement.Bottom;
 
         /// <summary>
-        /// 在顯示此步驟前執行的委派（例如切換 TabControl.SelectedIndex、展開 Expander 等）
+        /// 是否在目標控制項被真實點擊 (Click / PreviewMouseDown) 時自動跳下一步
+        /// </summary>
+        public bool AdvanceOnClick { get; set; } = true;
+
+        /// <summary>
+        /// 針對 TextBox：文字變更時的檢驗委派，返回 true 則自動跳下一步
+        /// </summary>
+        public Predicate<string> AdvanceOnTextValidate { get; set; }
+
+        /// <summary>
+        /// 針對 ComboBox / Selector：選擇項變更時是否自動跳下一步
+        /// </summary>
+        public bool AdvanceOnSelectionChange { get; set; }
+
+        /// <summary>
+        /// 顯示此步驟前執行的委派（例如切換 TabControl.SelectedIndex、展開 Expander 等）
         /// </summary>
         public Func<Task> BeforeShowAsync { get; set; }
 
@@ -53,26 +67,25 @@ namespace AutoOnboardingTour.Wpf
     }
 
     /// <summary>
-    /// WPF 零依賴純原生聚光燈導覽引擎
-    /// 使用 AdornerLayer 與 CombinedGeometry 實作動態挖洞遮罩與智慧卡片定位
+    /// WPF 實戰互動導引引擎 (C# 7.3 嚴格相容)
     /// </summary>
-    public class WpfTourManager
+    public class WpfInteractiveGuideManager
     {
         private readonly Window _window;
-        private readonly List<WpfTourStep> _steps = new List<WpfTourStep>();
-        private TourAdorner _currentAdorner;
+        private readonly List<GuideStep> _steps = new List<GuideStep>();
+        private GuideAdorner _currentAdorner;
         private int _currentIndex = -1;
 
-        public string StorageKey { get; set; } = "wpf_tour_completed";
+        public string StorageKey { get; set; } = "iag_wpf_guide_completed";
         public double SpotlightPadding { get; set; } = 8.0;
-        public IReadOnlyList<WpfTourStep> Steps => _steps;
+        public IReadOnlyList<GuideStep> Steps => _steps;
         public bool IsActive => _currentAdorner != null;
 
-        public event EventHandler TourCompleted;
-        public event EventHandler TourSkipped;
+        public event EventHandler GuideCompleted;
+        public event EventHandler GuideSkipped;
         public event EventHandler<int> StepChanged;
 
-        public WpfTourManager(Window window)
+        public WpfInteractiveGuideManager(Window window)
         {
             _window = window ?? throw new ArgumentNullException(nameof(window));
             _window.SizeChanged += (s, e) => _currentAdorner?.InvalidateLayoutAndRender();
@@ -80,29 +93,27 @@ namespace AutoOnboardingTour.Wpf
             _window.PreviewKeyDown += OnWindowKeyDown;
         }
 
-        public WpfTourManager AddStep(WpfTourStep step)
+        public WpfInteractiveGuideManager AddStep(GuideStep step)
         {
             if (step != null) _steps.Add(step);
             return this;
         }
 
-        public WpfTourManager AddStep(string targetName, string title, string content, TourPlacement placement = TourPlacement.Bottom, Action beforeShow = null)
+        public WpfInteractiveGuideManager AddStep(string targetName, string title, string content, GuidePlacement placement = GuidePlacement.Bottom, bool advanceOnClick = true, Action beforeShow = null)
         {
-            var step = new WpfTourStep
+            var step = new GuideStep
             {
                 Target = targetName,
                 Title = title,
                 Content = content,
                 Placement = placement,
+                AdvanceOnClick = advanceOnClick,
                 BeforeShow = beforeShow
             };
             _steps.Add(step);
             return this;
         }
 
-        /// <summary>
-        /// 首次打開時自動執行（以本機應用設定檔目錄儲存旗標）
-        /// </summary>
         public void StartIfFirstTime()
         {
             string flagFile = GetStorageFilePath();
@@ -115,7 +126,7 @@ namespace AutoOnboardingTour.Wpf
         private string GetStorageFilePath()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string dir = Path.Combine(appData, "AutoOnboardingTour");
+            string dir = Path.Combine(appData, "InteractiveActionGuide");
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             return Path.Combine(dir, $"{StorageKey}.flag");
         }
@@ -135,7 +146,7 @@ namespace AutoOnboardingTour.Wpf
                 layer.Remove(_currentAdorner);
             }
 
-            _currentAdorner = new TourAdorner(contentVisual, this);
+            _currentAdorner = new GuideAdorner(contentVisual, this);
             layer.Add(_currentAdorner);
 
             GoToStep(startIndex);
@@ -153,11 +164,11 @@ namespace AutoOnboardingTour.Wpf
                 try
                 {
                     await step.BeforeShowAsync();
-                    await Task.Delay(80); // 等待視覺樹刷新
+                    await Task.Delay(80);
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[WpfTour] BeforeShow error: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[InteractiveGuide] BeforeShow error: {ex.Message}");
                 }
             }
 
@@ -189,14 +200,14 @@ namespace AutoOnboardingTour.Wpf
         {
             SaveCompletionFlag();
             Stop();
-            TourCompleted?.Invoke(this, EventArgs.Empty);
+            GuideCompleted?.Invoke(this, EventArgs.Empty);
         }
 
         public void Skip()
         {
             SaveCompletionFlag();
             Stop();
-            TourSkipped?.Invoke(this, EventArgs.Empty);
+            GuideSkipped?.Invoke(this, EventArgs.Empty);
         }
 
         public void Stop()
@@ -206,6 +217,7 @@ namespace AutoOnboardingTour.Wpf
                 var contentVisual = _window.Content as UIElement;
                 var layer = AdornerLayer.GetAdornerLayer(contentVisual);
                 layer?.Remove(_currentAdorner);
+                _currentAdorner.Dispose();
                 _currentAdorner = null;
             }
             _currentIndex = -1;
@@ -223,18 +235,7 @@ namespace AutoOnboardingTour.Wpf
         private void OnWindowKeyDown(object sender, KeyEventArgs e)
         {
             if (!IsActive) return;
-
-            if (e.Key == Key.Right)
-            {
-                Next();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Left)
-            {
-                Prev();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Escape)
+            if (e.Key == Key.Escape)
             {
                 Skip();
                 e.Handled = true;
@@ -251,19 +252,17 @@ namespace AutoOnboardingTour.Wpf
             return null;
         }
 
-        /// <summary>
-        /// 裝飾層：負責繪製 CombinedGeometry 挖洞遮罩與承載教學卡片
-        /// </summary>
-        private class TourAdorner : Adorner
+        private class GuideAdorner : Adorner, IDisposable
         {
-            private readonly WpfTourManager _manager;
+            private readonly WpfInteractiveGuideManager _manager;
             private readonly Border _cardContainer;
             private readonly VisualCollection _visualChildren;
             private Rect _targetHoleRect;
             private FrameworkElement _currentTarget;
-            private WpfTourStep _currentStep;
+            private GuideStep _currentStep;
+            private Action _cleanupListener;
 
-            public TourAdorner(UIElement adornedElement, WpfTourManager manager) : base(adornedElement)
+            public GuideAdorner(UIElement adornedElement, WpfInteractiveGuideManager manager) : base(adornedElement)
             {
                 _manager = manager;
                 _visualChildren = new VisualCollection(this);
@@ -275,12 +274,60 @@ namespace AutoOnboardingTour.Wpf
                 Focusable = false;
             }
 
+            public void Dispose()
+            {
+                ClearListener();
+            }
+
+            private void ClearListener()
+            {
+                if (_cleanupListener != null)
+                {
+                    _cleanupListener();
+                    _cleanupListener = null;
+                }
+            }
+
             protected override int VisualChildrenCount => _visualChildren.Count;
             protected override Visual GetVisualChild(int index) => _visualChildren[index];
 
+            /// <summary>
+            /// 核心穿透機制：
+            /// 命中點若在洞口內，返回 null (穿透至下方真實控制項)！
+            /// 命中點若在卡片內，由卡片處理點擊。
+            /// 命中點若在洞口外，返回 this (鎖死攔截點擊)！
+            /// </summary>
+            protected override HitTestResult HitTestCore(PointHitTestParameters hitTestParameters)
+            {
+                Point pt = hitTestParameters.HitPoint;
+
+                // 若點擊教學卡片本身，允許點擊卡片上的按鈕
+                if (_cardContainer != null && _cardContainer.IsVisible)
+                {
+                    GeneralTransform transform = _cardContainer.TransformToAncestor(this);
+                    if (transform != null)
+                    {
+                        Rect cardRect = transform.TransformBounds(new Rect(0, 0, _cardContainer.ActualWidth, _cardContainer.ActualHeight));
+                        if (cardRect.Contains(pt))
+                        {
+                            return new PointHitTestResult(this, pt);
+                        }
+                    }
+                }
+
+                // 若點擊位於洞口內，返回 null 讓事件完全穿透到底下的真實控制項！
+                if (!_targetHoleRect.IsEmpty && _targetHoleRect.Contains(pt))
+                {
+                    return null;
+                }
+
+                // 洞口外其餘背景全數攔截 (鎖死四周)
+                return new PointHitTestResult(this, pt);
+            }
+
             private Border BuildCardUI()
             {
-                var border = new Border
+                return new Border
                 {
                     Background = Brushes.White,
                     BorderBrush = new SolidColorBrush(Color.FromArgb(230, 226, 232, 240)),
@@ -297,28 +344,29 @@ namespace AutoOnboardingTour.Wpf
                         Color = Colors.Black
                     }
                 };
-
-                return border;
             }
 
-            public void UpdateStep(WpfTourStep step, int index, int total)
+            public void UpdateStep(GuideStep step, int index, int total)
             {
+                ClearListener();
                 _currentStep = step;
                 _currentTarget = _manager.FindTargetElement(step.Target);
 
-                // 更新教學卡片內容
+                // 綁定真實操作事件監聽
+                BindTargetEvents(step);
+
+                // 建構教學卡片 UI
                 var stack = new StackPanel();
 
-                // 標題列 + 關閉按鈕
                 var headerGrid = new Grid();
                 headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                 var txtTitle = new TextBlock
                 {
-                    Text = step.Title,
+                    Text = "👉 " + step.Title,
                     FontWeight = FontWeights.Bold,
-                    FontSize = 15,
+                    FontSize = 14.5,
                     Foreground = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
                     VerticalAlignment = VerticalAlignment.Center
                 };
@@ -347,12 +395,12 @@ namespace AutoOnboardingTour.Wpf
                     Height = 4,
                     Background = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
                     CornerRadius = new CornerRadius(2),
-                    Margin = new Thickness(0, 10, 0, 10)
+                    Margin = new Thickness(0, 8, 0, 10)
                 };
                 var progressFill = new Border
                 {
                     Height = 4,
-                    Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+                    Background = new SolidColorBrush(Color.FromRgb(2, 132, 199)),
                     CornerRadius = new CornerRadius(2),
                     HorizontalAlignment = HorizontalAlignment.Left,
                     Width = 320 * ((double)(index + 1) / total)
@@ -365,14 +413,34 @@ namespace AutoOnboardingTour.Wpf
                 {
                     Text = step.Content,
                     TextWrapping = TextWrapping.Wrap,
-                    FontSize = 13.5,
-                    LineHeight = 20,
+                    FontSize = 13,
+                    LineHeight = 19,
                     Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
-                    Margin = new Thickness(0, 0, 0, 16)
+                    Margin = new Thickness(0, 0, 0, 10)
                 };
                 stack.Children.Add(txtContent);
 
-                // 底部按鈕區
+                // 操作徽章
+                var badgeBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(240, 249, 255)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(186, 230, 253)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(6, 4, 6, 4),
+                    Margin = new Thickness(0, 0, 0, 12)
+                };
+                var badgeTxt = new TextBlock
+                {
+                    Text = "🎯 請直接在上方高亮控制項中操作以繼續",
+                    FontSize = 12,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(3, 105, 161))
+                };
+                badgeBorder.Child = badgeTxt;
+                stack.Children.Add(badgeBorder);
+
+                // 底部計數與按鈕
                 var footerGrid = new Grid();
                 footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -387,17 +455,13 @@ namespace AutoOnboardingTour.Wpf
                 };
                 Grid.SetColumn(txtCounter, 0);
 
-                var btnStack = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                };
+                var btnStack = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
 
                 var btnSkip = new Button
                 {
                     Content = "跳過",
                     Margin = new Thickness(0, 0, 6, 0),
-                    Padding = new Thickness(10, 5, 10, 5),
+                    Padding = new Thickness(8, 4, 8, 4),
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
                     Foreground = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
@@ -412,7 +476,7 @@ namespace AutoOnboardingTour.Wpf
                     {
                         Content = "上一步",
                         Margin = new Thickness(0, 0, 6, 0),
-                        Padding = new Thickness(10, 5, 10, 5),
+                        Padding = new Thickness(10, 4, 10, 4),
                         Background = new SolidColorBrush(Color.FromRgb(241, 245, 249)),
                         BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
                         Foreground = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
@@ -426,8 +490,8 @@ namespace AutoOnboardingTour.Wpf
                 var btnNext = new Button
                 {
                     Content = isLast ? "完成" : "下一步",
-                    Padding = new Thickness(12, 5, 12, 5),
-                    Background = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+                    Padding = new Thickness(12, 4, 12, 4),
+                    Background = new SolidColorBrush(Color.FromRgb(2, 132, 199)),
                     Foreground = Brushes.White,
                     BorderThickness = new Thickness(0),
                     FontWeight = FontWeights.SemiBold,
@@ -442,8 +506,72 @@ namespace AutoOnboardingTour.Wpf
                 stack.Children.Add(footerGrid);
 
                 _cardContainer.Child = stack;
-
                 InvalidateLayoutAndRender();
+            }
+
+            private void BindTargetEvents(GuideStep step)
+            {
+                if (_currentTarget == null) return;
+
+                if (step.AdvanceOnClick)
+                {
+                    if (_currentTarget is ButtonBase btn)
+                    {
+                        RoutedEventHandler clickHandler = null;
+                        clickHandler = (s, e) =>
+                        {
+                            btn.Click -= clickHandler;
+                            AdvanceWithDelay();
+                        };
+                        btn.Click += clickHandler;
+                        _cleanupListener = () => btn.Click -= clickHandler;
+                    }
+                    else
+                    {
+                        MouseButtonEventHandler downHandler = null;
+                        downHandler = (s, e) =>
+                        {
+                            _currentTarget.PreviewMouseDown -= downHandler;
+                            AdvanceWithDelay();
+                        };
+                        _currentTarget.PreviewMouseDown += downHandler;
+                        _cleanupListener = () => _currentTarget.PreviewMouseDown -= downHandler;
+                    }
+                }
+                else if (step.AdvanceOnTextValidate != null && _currentTarget is TextBox tb)
+                {
+                    TextChangedEventHandler textHandler = null;
+                    textHandler = (s, e) =>
+                    {
+                        if (step.AdvanceOnTextValidate(tb.Text))
+                        {
+                            tb.TextChanged -= textHandler;
+                            AdvanceWithDelay();
+                        }
+                    };
+                    tb.TextChanged += textHandler;
+                    _cleanupListener = () => tb.TextChanged -= textHandler;
+                }
+                else if (step.AdvanceOnSelectionChange && _currentTarget is Selector sel)
+                {
+                    SelectionChangedEventHandler selHandler = null;
+                    selHandler = (s, e) =>
+                    {
+                        sel.SelectionChanged -= selHandler;
+                        AdvanceWithDelay();
+                    };
+                    sel.SelectionChanged += selHandler;
+                    _cleanupListener = () => sel.SelectionChanged -= selHandler;
+                }
+            }
+
+            private void AdvanceWithDelay()
+            {
+                Dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    await Task.Delay(250);
+                    if (_manager.IsActive) _manager.Next();
+                }));
             }
 
             public void InvalidateLayoutAndRender()
@@ -500,41 +628,38 @@ namespace AutoOnboardingTour.Wpf
 
                 if (!_targetHoleRect.IsEmpty)
                 {
-                    var placement = _currentStep?.Placement ?? TourPlacement.Bottom;
+                    var placement = _currentStep?.Placement ?? GuidePlacement.Bottom;
 
-                    // 自動防溢出
-                    if (placement == TourPlacement.Bottom && _targetHoleRect.Bottom + margin + cardHeight > finalSize.Height)
-                        placement = TourPlacement.Top;
-                    else if (placement == TourPlacement.Top && _targetHoleRect.Top - margin - cardHeight < 0)
-                        placement = TourPlacement.Bottom;
+                    if (placement == GuidePlacement.Bottom && _targetHoleRect.Bottom + margin + cardHeight > finalSize.Height)
+                        placement = GuidePlacement.Top;
+                    else if (placement == GuidePlacement.Top && _targetHoleRect.Top - margin - cardHeight < 0)
+                        placement = GuidePlacement.Bottom;
 
                     switch (placement)
                     {
-                        case TourPlacement.Top:
+                        case GuidePlacement.Top:
                             y = _targetHoleRect.Top - cardHeight - margin;
                             x = _targetHoleRect.Left + (_targetHoleRect.Width - cardWidth) / 2;
                             break;
-                        case TourPlacement.Bottom:
+                        case GuidePlacement.Bottom:
                             y = _targetHoleRect.Bottom + margin;
                             x = _targetHoleRect.Left + (_targetHoleRect.Width - cardWidth) / 2;
                             break;
-                        case TourPlacement.Left:
+                        case GuidePlacement.Left:
                             x = _targetHoleRect.Left - cardWidth - margin;
                             y = _targetHoleRect.Top + (_targetHoleRect.Height - cardHeight) / 2;
                             break;
-                        case TourPlacement.Right:
+                        case GuidePlacement.Right:
                             x = _targetHoleRect.Right + margin;
                             y = _targetHoleRect.Top + (_targetHoleRect.Height - cardHeight) / 2;
                             break;
                     }
 
-                    // Clamping
                     x = Math.Max(12, Math.Min(x, finalSize.Width - cardWidth - 12));
                     y = Math.Max(12, Math.Min(y, finalSize.Height - cardHeight - 12));
                 }
                 else
                 {
-                    // 置中顯示
                     x = (finalSize.Width - cardWidth) / 2;
                     y = (finalSize.Height - cardHeight) / 2;
                 }
@@ -557,11 +682,11 @@ namespace AutoOnboardingTour.Wpf
                     var holeGeometry = new RectangleGeometry(_targetHoleRect, 8, 8);
                     maskGeometry = new CombinedGeometry(GeometryCombineMode.Exclude, fullGeometry, holeGeometry);
 
-                    // 繪製半透明挖洞遮罩 (Slate-900 / 78% opacity)
+                    // 繪製半透明挖洞遮罩
                     drawingContext.DrawGeometry(new SolidColorBrush(Color.FromArgb(198, 15, 23, 42)), null, maskGeometry);
 
-                    // 繪製目標高亮外框
-                    var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 59, 130, 246)), 2.0);
+                    // 繪製高亮外框
+                    var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(220, 2, 132, 199)), 2.5);
                     drawingContext.DrawRoundedRectangle(null, borderPen, _targetHoleRect, 8, 8);
                 }
                 else
