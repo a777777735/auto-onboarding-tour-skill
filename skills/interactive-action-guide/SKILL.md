@@ -36,10 +36,16 @@ guide.StartWithSelectionDialog(); // 自動彈出精簡/全覆蓋模式選擇並
 
 ---
 
-## 📸 工具閉環：步驟自動截圖與 Markdown SOP 生成 (Auto SOP Generator)
-當導引引擎執行時，系統會自動在每個步驟完成高亮時截取操作畫面，並於導覽完成（`Complete()`）時自動在專案目錄下的 `docs/SOP/` 產出：
+## 📸 工具閉環：資訊解耦、自動截圖與 Markdown SOP / JSON Manifest 生成
+本引擎採用**「引導與手冊資訊解耦架構 (Decoupled Documentation Architecture)」**：
+- **UI 實戰引導 (`Content`)**：維持精簡聚焦（例如「點擊按鈕送出表單」），避免遮擋畫面。
+- **SOP 業務手冊 (`DetailedDescription`)**：可填寫深入業務背景、系統前置條件（若未填寫則自動 Fallback 到 `Content`）。
+- **警語與預期成果 (`Caution`, `ExpectedResult`)**：自動產出高對比 Alert 區塊與驗證成果。
+
+當導覽完成（`Complete()`）時，自動在 `docs/SOP/` 產出完整閉環：
 1. `screenshots/step_1.png` ... `screenshots/step_N.png`（高解析畫面截圖）
-2. `USER_MANUAL.md`（完整 Markdown 圖文操作手冊，含目錄、目標控制項、觸發動作說明與注意事項）
+2. `USER_MANUAL.md`（完整 Markdown 圖文操作手冊，含目錄、詳細業務說明、警語與截圖）
+3. `guide_manifest.json`（**完全獨立的結構化 JSON 資料集**，可直接供外部企業 Wiki、知識庫或其它 AI Agent 讀取二次使用）
 
 ---
 

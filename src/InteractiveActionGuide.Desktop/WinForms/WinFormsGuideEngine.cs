@@ -33,6 +33,22 @@ namespace InteractiveActionGuide.WinForms
         public object Target { get; set; }
         public string Title { get; set; }
         public string Content { get; set; }
+
+        /// <summary>
+        /// 獨立的 SOP / 說明文檔深度業務說明（若未設定則自動 Fallback 到 Content）
+        /// </summary>
+        public string DetailedDescription { get; set; }
+
+        /// <summary>
+        /// 注意事項 / 警告鐵律（選填）
+        /// </summary>
+        public string Caution { get; set; }
+
+        /// <summary>
+        /// 預期操作結果與驗證狀態（選填）
+        /// </summary>
+        public string ExpectedResult { get; set; }
+
         public GuidePlacement Placement { get; set; } = GuidePlacement.Bottom;
 
         /// <summary>
@@ -278,6 +294,9 @@ namespace InteractiveActionGuide.WinForms
                     StepIndex = stepNumber,
                     Title = step.Title,
                     Content = step.Content,
+                    DetailedDescription = step.DetailedDescription,
+                    Caution = step.Caution,
+                    ExpectedResult = step.ExpectedResult,
                     TargetName = step.Target != null ? step.Target.ToString() : string.Empty,
                     ActionType = step.AdvanceOnClick ? "點擊控制項" : (step.AdvanceOnSelectionChange ? "切換選項" : "輸入內容"),
                     ScreenshotRelativePath = Path.Combine("screenshots", shotFileName)
