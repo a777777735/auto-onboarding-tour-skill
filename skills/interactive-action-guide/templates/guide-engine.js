@@ -230,7 +230,9 @@
   class InteractiveActionGuide {
     /**
      * @param {Object} options
-     * @param {Array<Object>} options.steps
+     * @param {Array<Object>} [options.steps]
+     * @param {Object} [options.modes] - 支援雙模式 { concise: [...], detailed: [...] }
+     * @param {string} [options.defaultMode='concise']
      * @param {string} [options.storageKey]
      * @param {number} [options.spotlightPadding=8]
      * @param {Function} [options.onComplete]
@@ -238,7 +240,9 @@
      * @param {Function} [options.onStep]
      */
     constructor(options = {}) {
-      this.steps = options.steps || [];
+      this.modes = options.modes || null;
+      this.currentMode = options.defaultMode || 'concise';
+      this.steps = this.modes ? (this.modes[this.currentMode] || []) : (options.steps || []);
       this.storageKey = options.storageKey || 'iag_guide_completed';
       this.spotlightPadding = options.spotlightPadding ?? 8;
       this.onComplete = options.onComplete || null;
@@ -308,7 +312,16 @@
       }
     }
 
-    start(startIndex = 0) {
+    /**
+     * 啟動導覽
+     * @param {number|string} [modeOrIndex=0] - 支援傳入步驟數字或模式名稱 ('concise' | 'detailed')
+     */
+    start(modeOrIndex = 0) {
+      if (typeof modeOrIndex === 'string' && this.modes && this.modes[modeOrIndex]) {
+        this.currentMode = modeOrIndex;
+        this.steps = this.modes[this.currentMode] || [];
+        modeOrIndex = 0;
+      }
       if (this.steps.length === 0) return;
       this._createDOM();
       this.isActive = true;
@@ -316,7 +329,20 @@
       window.addEventListener('scroll', this._boundOnResize, true);
       window.addEventListener('keydown', this._boundOnKeyDown);
 
-      this.goToStep(startIndex);
+      this.goToStep(typeof modeOrIndex === 'number' ? modeOrIndex : 0);
+    }
+
+    /**
+     * 動態切換模式 (concise | detailed)
+     * @param {'concise'|'detailed'} newMode
+     */
+    switchMode(newMode) {
+      if (!this.modes || !this.modes[newMode]) return;
+      this.currentMode = newMode;
+      this.steps = this.modes[newMode];
+      if (this.isActive) {
+        this.goToStep(0);
+      }
     }
 
     startIfFirstTime() {
@@ -476,11 +502,22 @@
         actionHint = `<div class="iag-action-badge">🎯 ${msg}</div>`;
       }
 
+      let modeToggleHtml = '';
+      if (this.modes) {
+        modeToggleHtml = `
+          <div style="display:flex;gap:4px;margin-bottom:8px;">
+            <button data-action="mode-concise" style="font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid ${this.currentMode === 'concise' ? '#0284c7' : '#cbd5e1'};background:${this.currentMode === 'concise' ? '#f0f9ff' : '#fff'};color:${this.currentMode === 'concise' ? '#0284c7' : '#64748b'};cursor:pointer;font-weight:600;">⚡ 收斂精簡 (4-6步)</button>
+            <button data-action="mode-detailed" style="font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid ${this.currentMode === 'detailed' ? '#0284c7' : '#cbd5e1'};background:${this.currentMode === 'detailed' ? '#f0f9ff' : '#fff'};color:${this.currentMode === 'detailed' ? '#0284c7' : '#64748b'};cursor:pointer;font-weight:600;">📖 詳細全覆蓋</button>
+          </div>
+        `;
+      }
+
       this.tooltipEl.innerHTML = `
         <div class="iag-header">
           <h4 class="iag-title"><span>👉</span> ${step.title || ''}</h4>
           <button class="iag-close-btn" aria-label="Close" data-action="skip">&times;</button>
         </div>
+        ${modeToggleHtml}
         <div class="iag-progress-bar-wrap">
           <div class="iag-progress-bar-fill" style="width: ${progressPercent}%;"></div>
         </div>
@@ -502,6 +539,8 @@
           if (action === 'next') this.next();
           else if (action === 'prev') this.prev();
           else if (action === 'skip') this.skip();
+          else if (action === 'mode-concise') this.switchMode('concise');
+          else if (action === 'mode-detailed') this.switchMode('detailed');
         });
       });
     }

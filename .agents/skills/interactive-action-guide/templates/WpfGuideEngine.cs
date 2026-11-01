@@ -20,6 +20,15 @@ namespace InteractiveActionGuide.Wpf
     }
 
     /// <summary>
+    /// 導引模式：收斂精簡 (4~6步) 或 詳細全覆蓋 (無限制)
+    /// </summary>
+    public enum GuideMode
+    {
+        Concise,  // 收斂精簡模式：保留 4 至 6 個核心步驟
+        Detailed  // 詳細全覆蓋模式：地毯式涵蓋所有 Tab/Expander/輸入框
+    }
+
+    /// <summary>
     /// 定義互動引導步驟
     /// 支援四周鎖死、洞口穿透 (Click-Through) 與真實事件自動推進
     /// </summary>
@@ -72,13 +81,16 @@ namespace InteractiveActionGuide.Wpf
     public class WpfInteractiveGuideManager
     {
         private readonly Window _window;
-        private readonly List<GuideStep> _steps = new List<GuideStep>();
+        private readonly List<GuideStep> _conciseSteps = new List<GuideStep>();
+        private readonly List<GuideStep> _detailedSteps = new List<GuideStep>();
         private GuideAdorner _currentAdorner;
         private int _currentIndex = -1;
+        private GuideMode _currentMode = GuideMode.Concise;
 
         public string StorageKey { get; set; } = "iag_wpf_guide_completed";
         public double SpotlightPadding { get; set; } = 8.0;
-        public IReadOnlyList<GuideStep> Steps => _steps;
+        public GuideMode CurrentMode => _currentMode;
+        public IReadOnlyList<GuideStep> Steps => _currentMode == GuideMode.Concise ? (IReadOnlyList<GuideStep>)_conciseSteps : _detailedSteps;
         public bool IsActive => _currentAdorner != null;
 
         public event EventHandler GuideCompleted;
@@ -93,13 +105,17 @@ namespace InteractiveActionGuide.Wpf
             _window.PreviewKeyDown += OnWindowKeyDown;
         }
 
-        public WpfInteractiveGuideManager AddStep(GuideStep step)
+        public WpfInteractiveGuideManager AddStep(GuideStep step, GuideMode mode = GuideMode.Concise)
         {
-            if (step != null) _steps.Add(step);
+            if (step != null)
+            {
+                if (mode == GuideMode.Concise) _conciseSteps.Add(step);
+                else _detailedSteps.Add(step);
+            }
             return this;
         }
 
-        public WpfInteractiveGuideManager AddStep(string targetName, string title, string content, GuidePlacement placement = GuidePlacement.Bottom, bool advanceOnClick = true, Action beforeShow = null)
+        public WpfInteractiveGuideManager AddStep(string targetName, string title, string content, GuidePlacement placement = GuidePlacement.Bottom, bool advanceOnClick = true, Action beforeShow = null, GuideMode mode = GuideMode.Concise)
         {
             var step = new GuideStep
             {
@@ -110,30 +126,32 @@ namespace InteractiveActionGuide.Wpf
                 AdvanceOnClick = advanceOnClick,
                 BeforeShow = beforeShow
             };
-            _steps.Add(step);
-            return this;
+            return AddStep(step, mode);
         }
 
-        public void StartIfFirstTime()
+        public void StartIfFirstTime(GuideMode mode = GuideMode.Concise)
         {
             string flagFile = GetStorageFilePath();
             if (!File.Exists(flagFile))
             {
-                Start(0);
+                Start(mode);
             }
         }
 
-        private string GetStorageFilePath()
+        public void SwitchMode(GuideMode mode)
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string dir = Path.Combine(appData, "InteractiveActionGuide");
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            return Path.Combine(dir, $"{StorageKey}.flag");
+            _currentMode = mode;
+            if (IsActive)
+            {
+                GoToStep(0);
+            }
         }
 
-        public void Start(int startIndex = 0)
+        public void Start(GuideMode mode = GuideMode.Concise, int startIndex = 0)
         {
-            if (_steps.Count == 0) return;
+            _currentMode = mode;
+            var activeSteps = Steps;
+            if (activeSteps.Count == 0) return;
 
             var contentVisual = _window.Content as UIElement;
             if (contentVisual == null) return;

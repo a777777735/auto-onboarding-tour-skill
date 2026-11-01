@@ -16,6 +16,15 @@ namespace InteractiveActionGuide.WinForms
     }
 
     /// <summary>
+    /// 導引模式：收斂精簡 (4~6步) 或 詳細全覆蓋 (無限制)
+    /// </summary>
+    public enum GuideMode
+    {
+        Concise,  // 收斂精簡模式：保留 4 至 6 個核心步驟
+        Detailed  // 詳細全覆蓋模式：地毯式涵蓋所有 Tab/Expander/輸入框
+    }
+
+    /// <summary>
     /// 定義 WinForms 實戰互動引導步驟
     /// </summary>
     public class GuideStep
@@ -52,13 +61,16 @@ namespace InteractiveActionGuide.WinForms
     public class WinFormsInteractiveGuideManager
     {
         private readonly Form _mainForm;
-        private readonly List<GuideStep> _steps = new List<GuideStep>();
+        private readonly List<GuideStep> _conciseSteps = new List<GuideStep>();
+        private readonly List<GuideStep> _detailedSteps = new List<GuideStep>();
         private GuideOverlayForm _overlayForm;
         private int _currentIndex = -1;
+        private GuideMode _currentMode = GuideMode.Concise;
 
         public string StorageKey { get; set; } = "iag_winforms_guide_completed";
         public int SpotlightPadding { get; set; } = 8;
-        public IReadOnlyList<GuideStep> Steps => _steps;
+        public GuideMode CurrentMode => _currentMode;
+        public IReadOnlyList<GuideStep> Steps => _currentMode == GuideMode.Concise ? (IReadOnlyList<GuideStep>)_conciseSteps : _detailedSteps;
         public bool IsActive => _overlayForm != null && !_overlayForm.IsDisposed && _overlayForm.Visible;
 
         public event EventHandler GuideCompleted;
@@ -70,15 +82,19 @@ namespace InteractiveActionGuide.WinForms
             _mainForm = mainForm ?? throw new ArgumentNullException(nameof(mainForm));
         }
 
-        public WinFormsInteractiveGuideManager AddStep(GuideStep step)
+        public WinFormsInteractiveGuideManager AddStep(GuideStep step, GuideMode mode = GuideMode.Concise)
         {
-            if (step != null) _steps.Add(step);
+            if (step != null)
+            {
+                if (mode == GuideMode.Concise) _conciseSteps.Add(step);
+                else _detailedSteps.Add(step);
+            }
             return this;
         }
 
-        public WinFormsInteractiveGuideManager AddStep(string controlName, string title, string content, GuidePlacement placement = GuidePlacement.Bottom, bool advanceOnClick = true, Action beforeShow = null)
+        public WinFormsInteractiveGuideManager AddStep(string controlName, string title, string content, GuidePlacement placement = GuidePlacement.Bottom, bool advanceOnClick = true, Action beforeShow = null, GuideMode mode = GuideMode.Concise)
         {
-            _steps.Add(new GuideStep
+            var step = new GuideStep
             {
                 Target = controlName,
                 Title = title,
@@ -86,30 +102,33 @@ namespace InteractiveActionGuide.WinForms
                 Placement = placement,
                 AdvanceOnClick = advanceOnClick,
                 BeforeShow = beforeShow
-            });
-            return this;
+            };
+            return AddStep(step, mode);
         }
 
-        public void StartIfFirstTime()
+        public void StartIfFirstTime(GuideMode mode = GuideMode.Concise)
         {
             string flagFile = GetStorageFilePath();
             if (!File.Exists(flagFile))
             {
-                Start(0);
+                Start(mode);
             }
         }
 
-        private string GetStorageFilePath()
+        public void SwitchMode(GuideMode mode)
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string dir = Path.Combine(appData, "InteractiveActionGuide");
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            return Path.Combine(dir, $"{StorageKey}.flag");
+            _currentMode = mode;
+            if (IsActive)
+            {
+                GoToStep(0);
+            }
         }
 
-        public void Start(int startIndex = 0)
+        public void Start(GuideMode mode = GuideMode.Concise, int startIndex = 0)
         {
-            if (_steps.Count == 0 || _mainForm.IsDisposed) return;
+            _currentMode = mode;
+            var activeSteps = Steps;
+            if (activeSteps.Count == 0 || _mainForm.IsDisposed) return;
 
             if (_overlayForm == null || _overlayForm.IsDisposed)
             {

@@ -31,8 +31,14 @@ trigger_condition: 當使用者要求加入實戰互動導引、操作教學、�
 
 ## 🎯 4 大注入執行步驟 (Core Protocol)
 
-### Step 1: 盤點工作流 (Workflow Audit)
-遵循「**資料匯入/輸入 $\rightarrow$ 參數設定/核心操作 $\rightarrow$ 檢視圖表/結果 $\rightarrow$ 匯出/儲存**」閉環，收斂出 **4~7 個核心步驟**，為每一步設定期望的「使用者實體操作」。
+### Step 1: 盤點工作流與模式配置 (Workflow Audit & Dual Modes)
+AI 必須同時建構並支援兩種導引模式，滿足不同情境需求：
+- **`concise` (收斂精簡模式)**：
+  - **規則**：嚴格過濾次要控制項，僅保留 4 至 6 個核心操作步驟（起點 $\rightarrow$ 核心 $\rightarrow$ 終點）。
+- **`detailed` (詳細全覆蓋模式)**：
+  - **規則**：執行 100% 地毯式盤點，涵蓋所有 Tab 分頁、Expander 展開面板、次要按鈕與輸入框，不限步驟數量。
+
+在初始化引擎時傳入雙模式清單：`modes: { concise: [...], detailed: [...] }`，介面將自動提供「⚡ 精簡導引」與「📖 完整教學」模式切換。
 
 ### Step 2: 綁定語意錨點與事件 (Semantic Anchoring)
 - **Web/HTML**：目標元素標記 `data-tour="step-X"`，並設定 `advanceOn`:
