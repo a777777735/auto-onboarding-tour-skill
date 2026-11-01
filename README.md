@@ -1,143 +1,93 @@
-# auto-onboarding-tour AI Agent Skill
+# AI Agent Central Skills & Global Rules Repository (中央技能與規範倉庫)
 
-> 讓 AI Agent 能自動分析任何 **Web/HTML 網頁**、**C# WPF** 或 **C# WinForms** 應用的操作流程，並在原有代碼中無縫注入「下一步、下一步」的聚光燈互動式導覽（Onboarding Tour）。
-
----
-
-## 🌟 核心特色
-
-- **零外部依賴 (Zero-CDN, Zero-NuGet, Offline First)**：
-  - Web: 純原生 Vanilla JS + CSS，單檔 HTML / 離線環境皆可運作。
-  - C# WPF: 純原生 C# 代碼，使用 `AdornerLayer` 搭配 `CombinedGeometry` 挖洞，零 NuGet 套件。
-  - C# WinForms: 純原生 C# 代碼，使用無邊框貼合 Overlay Form 搭配 `Region.Exclude` 鏤空，零 NuGet 套件。
-- **平滑聚光燈效果 (Spotlight Mask)**：高亮目標控制項，周圍以深色半透明遮罩覆蓋，並附帶亮色外框。
-- **智慧防溢出 Tooltip (Auto-collision & Flip)**：自動依據可視區域/視窗邊界判定放置方向（上/下/左/右），避免超出螢幕。
-- **動態視圖鉤子 (`beforeShow` / `BeforeShow`)**：當目標元素處於隱藏的 Tab 頁籤、Modal 或 Accordion 時，先自動觸發切換再高亮。
-- **全方位互動體驗**：支援視窗縮放/移動時自動重算座標，支援鍵盤快速鍵：`→`（下一步）、`←`（上一步）、`Escape`（退出）。
-- **首次造訪自動啟動**：支援本機記錄記憶，並常駐「❓ 操作導覽」按鈕供隨時手動重新啟動。
+> 一個集中管理、維護並一鍵分發所有 AI Agent Skills、全域 Rules 與 UI/UX 範本的現代化 Monorepo。支援一鍵同步至本機全域環境（`~/.agents`）與任何個別前端或 C# 專案。
 
 ---
 
-## 📁 專案檔案結構
+## 📁 集中管理架構全景
 
 ```text
 .
-├── .agents/
-│   └── skills/
-│       └── auto-onboarding-tour/
-│           ├── SKILL.md                  # Skill 規範定義檔 (包含專案類型偵測與執行規則)
-│           └── templates/
-│               ├── tour-engine.js        # Web/HTML 原生導覽引擎
-│               ├── WpfTourEngine.cs      # C# WPF 原生導覽引擎 (AdornerLayer + CombinedGeometry)
-│               └── WinFormsTourEngine.cs # C# WinForms 原生導覽引擎 (Overlay Form + Region.Exclude)
-├── examples/
-│   └── demo-app.html                     # Web 單檔 HTML 示範應用
-└── README.md                             # 本專案說明與跨平台載入指南
+├── rules/                                      # 全域常駐規範 (Global Standards)
+│   └── 01-ui-layout-and-theme.md               # 佈局防跑版鐵律與 Industrial Slate Dark 標準色票
+│
+├── skills/                                     # 各項專業技能 (Modular Agent Skills)
+│   ├── ui-layout-theme-guard/                  # [Skill] UI 佈局防呆與工業色票守護者
+│   │   ├── SKILL.md                            # 審查與重構指令規範
+│   │   └── templates/
+│   │       ├── web-theme-vars.css              # Web CSS 變數與 App Shell 鎖定模板
+│   │       └── WpfThemeResource.xaml           # WPF 高對比深色主題 ResourceDictionary
+│   │
+│   └── auto-onboarding-tour/                   # [Skill] 自動互動導覽注入引擎
+│       ├── SKILL.md                            # 導覽注入四大步驟規範
+│       └── templates/
+│           ├── tour-engine.js                  # Web 原生純 JS + 聚光燈挖洞導覽引擎
+│           ├── WpfTourEngine.cs                # C# WPF Adorner + CombinedGeometry 導覽引擎
+│           └── WinFormsTourEngine.cs           # C# WinForms Overlay + Region.Exclude 導覽引擎
+│
+├── examples/                                   # 示範應用
+│   └── demo-app.html                           # 完美整合 Industrial Dark 與 Onboarding Tour 的單檔儀表板
+│
+├── install-to-project.ps1                      # Windows PowerShell 一鍵同步部署腳本
+├── install-to-project.sh                       # macOS / Linux Bash 一鍵同步部署腳本
+├── SKILLS_INDEX.md                             # AI 技能與全域規則總索引表 (新增 Skill 必須同步更新)
+└── README.md                                   # 本倉庫指南
 ```
 
 ---
 
-## 🔍 專案類型自動偵測
+## ⚡ 一鍵同步與部署 (Deploy & Sync)
 
-AI 在執行時會自動偵測目標專案：
-1. **Web / HTML 專案**（`.html`, `.jsx`, `.vue`）$\rightarrow$ 採用 `templates/tour-engine.js`。
-2. **C# WPF 專案**（`.csproj` 含 `<UseWPF>true</UseWPF>` 或 `.xaml` 檔）$\rightarrow$ 採用 `templates/WpfTourEngine.cs`。
-3. **C# WinForms 專案**（`.csproj` 含 `<UseWindowsForms>true</UseWindowsForms>` 或 `Form.Designer.cs`）$\rightarrow$ 採用 `templates/WinFormsTourEngine.cs`。
+### 1. Windows (PowerShell)
+```powershell
+# 同步至特定專案目錄（自動建立 .agents/rules 與 .agents/skills，並同步更新本機 ~/.agents）
+.\install-to-project.ps1 "D:\Projects\MyWpfApp"
 
----
-
-## 🚀 跨平台 AI Agent 安裝與載入指南
-
-### 1. 在 Google Antigravity 中使用
-本專案已放置於 `.agents/skills/auto-onboarding-tour/`：
-- 直接在對話中提示：
-  > 「請使用 `auto-onboarding-tour` skill 為我的 WPF 視窗 `MainWindow.xaml` 加上導覽教學。」
-
-### 2. 在 Visual Studio / Cursor 中使用
-在專案根目錄 `.cursorrules` 或 `.cursor/rules/onboarding.mdc` 加入：
-```markdown
-當需要為 Web、WPF 或 WinForms 專案加入步驟導覽時，請參考 `.agents/skills/auto-onboarding-tour/SKILL.md` 的執行規範，並引用對應平台的 template。
+# 僅同步至本機全域環境 (~/.agents)
+.\install-to-project.ps1 -GlobalOnly
 ```
 
-### 3. 在 Claude Code (CLI) 中使用
-在 `CLAUDE.md` 中引用此 Skill：
-```markdown
-# Onboarding Tour Skill
-當需要為應用加入操作引導時，請依據專案類型參照 `.agents/skills/auto-onboarding-tour/SKILL.md` 注入對應的導覽引擎。
+### 2. macOS / Linux (Bash)
+```bash
+# 賦予執行權限並同步至目標專案
+chmod +x install-to-project.sh
+./install-to-project.sh /path/to/my-web-project
+
+# 僅同步至全域 (~/.agents)
+./install-to-project.sh
 ```
 
 ---
 
-## 💻 快速使用範例
+## 🧠 日常開發呼叫範例 (Cheat Sheet)
 
-### 1. Web / HTML
-```html
-<script src="tour-engine.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const tour = new OnboardingTour({
-      storageKey: 'my_app_tour',
-      steps: [
-        {
-          target: '[data-tour="step-import"]',
-          title: '步驟 1：資料匯入',
-          content: '點擊此處上傳 CSV 或載入範例。',
-          placement: 'bottom'
-        }
-      ]
-    });
-    OnboardingTour.createLauncherButton({ text: '操作導覽', onClick: () => tour.start(0) });
-    tour.startIfFirstTime();
-  });
-</script>
-```
+當您在任何已安裝此套規範的專案中與 AI 對話時，可直接使用以下提示詞觸發對應技能：
 
-### 2. C# WPF 桌面應用
-```csharp
-using AutoOnboardingTour.Wpf;
+### 🎨 場景 A：介面美化、修正破版或套用色票 (`ui-layout-theme-guard`)
+- **Web 網頁開發**：
+  > 「請根據 `ui-layout-theme-guard` skill 審查並重構我的 `dashboard.html`，套用 Industrial Slate Dark 色票，並修正手機版與縮放時的邊界撐破問題。」
+- **C# WPF 視窗開發**：
+  > 「請依照 `ui-layout-theme-guard` 修正 `MainWindow.xaml` 的排版，將所有硬編碼 Margin 座標改為標準 Grid 比例佈局，並套用 `WpfThemeResource.xaml`。」
+- **C# WinForms 開發**：
+  > 「請幫我的 WinForms 主視窗套用工業級深色主題，並修正 DPI 縮放與 TableLayoutPanel 佈局。」
 
-public partial class MainWindow : Window
-{
-    private WpfTourManager _tour;
+### 🚀 場景 B：為現有應用無縫加上互動步驟導覽 (`auto-onboarding-tour`)
+- **Web 網頁**：
+  > 「請掃描我的單檔 HTML 工具操作流程，使用 `auto-onboarding-tour` skill 在原代碼中注入 5 個步驟的聚光燈互動教學。」
+- **C# WPF / WinForms**：
+  > 「請為我的 WPF 視窗加上新手教學導覽，當引導到『進階分析』步驟時，自動幫使用者切換到第二個 Tab 頁籤！」
 
-    public MainWindow()
-    {
-        InitializeComponent();
-        Loaded += (s, e) =>
-        {
-            _tour = new WpfTourManager(this) { StorageKey = "wpf_tour_v1" };
-            _tour.AddStep("btnImport", "步驟 1：匯入數據", "點擊載入業務檔案。")
-                 .AddStep("tabAdvanced", "步驟 2：進階分析", "系統自動切換至分析頁籤。", 
-                          TourPlacement.Top, beforeShow: () => myTabControl.SelectedIndex = 1);
-            _tour.StartIfFirstTime();
-        };
-    }
+---
 
-    private void BtnHelp_Click(object sender, RoutedEventArgs e) => _tour.Start(0);
-}
-```
+## ➕ 如何新增未來的第 3 個以上 Skill？（標準作業流程）
 
-### 3. C# WinForms 桌面應用
-```csharp
-using AutoOnboardingTour.WinForms;
+當您或 AI Agent 要在此中央倉庫中新增技能時，**請嚴格遵循以下 3 步標準 SOP**：
 
-public partial class MainForm : Form
-{
-    private WinFormsTourManager _tour;
-
-    public MainForm()
-    {
-        InitializeComponent();
-        Load += (s, e) =>
-        {
-            _tour = new WinFormsTourManager(this) { StorageKey = "winforms_tour_v1" };
-            _tour.AddStep("btnUpload", "步驟 1：檔案上傳", "點此選擇分析資料。")
-                 .AddStep("gridResult", "步驟 2：報表明細", "此處展示運算成果。",
-                          beforeShow: () => tabControl1.SelectedTab = tabPageGrid);
-            _tour.StartIfFirstTime();
-        };
-    }
-
-    private void btnTour_Click(object sender, EventArgs e) => _tour.Start(0);
-}
-```
+1. **建立 Skill 目錄**：
+   在 `skills/<your-skill-name>/` 下建立 `SKILL.md`（必須包含 YAML frontmatter：`name` 與 `description`），若有相關代碼模板則放置於 `templates/` 子目錄。
+2. **若有專案級規則**：
+   若屬於全域開發鐵律，於 `rules/` 新增編號文件（如 `rules/02-api-architecture.md`）。
+3. **強制更新索引檔 (`SKILLS_INDEX.md`)**：
+   在 [`SKILLS_INDEX.md`](SKILLS_INDEX.md) 中登記新增的 Skill ID、分類、支援環境、觸發關鍵字與路徑。
+4. **執行本地部署**：
+   執行 `.\install-to-project.ps1 -GlobalOnly` 將新 Skill 即刻推送到本機全域環境！
