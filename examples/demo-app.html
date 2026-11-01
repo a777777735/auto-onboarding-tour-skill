@@ -6,15 +6,17 @@
   <title>OmniAnalytics - 智慧營運決策儀表板 (Onboarding Tour 示範)</title>
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --bg-main: #f8fafc;
-      --card-bg: #ffffff;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --border-color: #e2e8f0;
+      --bg-primary: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-elevated: #334155;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
       --success: #10b981;
       --warning: #f59e0b;
+      --danger: #ef4444;
     }
 
     * {
@@ -25,15 +27,16 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: var(--bg-main);
-      color: var(--text-main);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
       line-height: 1.5;
       padding-bottom: 40px;
+      min-height: 100vh;
     }
 
     /* 頂部導航 */
     .navbar {
-      background-color: var(--card-bg);
+      background-color: var(--bg-surface);
       border-bottom: 1px solid var(--border-color);
       padding: 14px 24px;
       display: flex;
@@ -50,13 +53,13 @@
       gap: 10px;
       font-weight: 700;
       font-size: 18px;
-      color: var(--text-main);
+      color: var(--text-primary);
     }
 
     .brand-icon {
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -80,12 +83,12 @@
 
     /* 卡片通用樣式 */
     .card {
-      background: var(--card-bg);
+      background: var(--bg-surface);
       border-radius: 12px;
       border: 1px solid var(--border-color);
       padding: 20px;
       margin-bottom: 20px;
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     }
 
     /* 區塊標題 */
@@ -96,6 +99,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      color: var(--text-primary);
     }
 
     /* 匯入區域 */
@@ -130,12 +134,12 @@
     }
 
     .btn-outline {
-      background: #fff;
+      background: var(--bg-elevated);
       border-color: var(--border-color);
-      color: var(--text-main);
+      color: var(--text-primary);
     }
     .btn-outline:hover {
-      background-color: #f1f5f9;
+      background-color: #475569;
     }
 
     .btn-success {
@@ -168,7 +172,8 @@
       border-radius: 6px;
       border: 1px solid var(--border-color);
       font-size: 14px;
-      background-color: #fff;
+      background-color: var(--bg-elevated);
+      color: var(--text-primary);
       outline: none;
     }
 
@@ -181,7 +186,7 @@
     }
 
     .kpi-card {
-      background: #fff;
+      background: var(--bg-surface);
       border: 1px solid var(--border-color);
       border-radius: 12px;
       padding: 18px;
@@ -197,14 +202,14 @@
       font-size: 26px;
       font-weight: 800;
       margin: 8px 0;
-      color: var(--text-main);
+      color: var(--text-primary);
     }
 
     .kpi-badge {
       font-size: 12px;
       font-weight: 600;
       color: var(--success);
-      background-color: #ecfdf5;
+      background-color: rgba(16, 185, 129, 0.15);
       padding: 2px 8px;
       border-radius: 9999px;
       display: inline-block;
@@ -248,6 +253,8 @@
       width: 100%;
       height: 280px;
       position: relative;
+      min-width: 0;
+      min-height: 0;
     }
     canvas {
       width: 100% !important;
@@ -261,7 +268,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 12px;
-      background: #fff;
+      background: var(--bg-surface);
       border: 1px dashed var(--border-color);
       border-radius: 12px;
       padding: 18px 24px;
