@@ -1,15 +1,15 @@
 ---
 name: ui-layout-theme-guard
 category: UI/UX
-description: 專業級 UI 佈局防跑版與工業色票守護者。自動審查並重構 Web (HTML/CSS)、C# WPF 與 C# WinForms 介面代碼，根治版面跑版、元件重疊、邊界撐破與顏色對比不佳問題。
+description: 專業級 UI 佈局防跑版、輸入框尺寸鎖定與雙主題工控色票守護者。自動審查並重構 Web (HTML/CSS)、C# WPF 與 C# WinForms 介面代碼，根治輸入框大小失控隨字體縮放、版面跑版、元件重疊與配色刺眼問題。
 auto_invoke: always
 file_patterns: "*.html, *.css, *.jsx, *.tsx, *.vue, *.xaml, *.cs"
-trigger_condition: 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C# (WPF/WinForms) 介面代碼時，必須主動套用此規範防止跑版與刺眼配色。
+trigger_condition: 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C# (WPF/WinForms) 介面代碼時，必須主動套用此規範防止輸入框大小暴走跑版與刺眼配色。
 ---
 
 # UI Layout & Industrial Theme Guard
 
-本 Skill 為 UI 佈局防跑版與工業風配色的最高執行準則。在編寫、修改或重構任何 Web 前端（HTML/CSS）或 C# 桌面應用（WPF/WinForms）時，**必須自動且無條件套用以下規範**。
+本 Skill 為 UI 佈局防跑版、輸入框比例鎖定與雙主題工業風配色的最高執行準則。在編寫、修改或重構任何 Web 前端（HTML/CSS）或 C# 桌面應用（WPF/WinForms）時，**必須自動且無條件套用以下規範**。
 
 ---
 
@@ -29,8 +29,31 @@ trigger_condition: 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C
 
 ---
 
-## 🎨 1. 統一色票系統 (Industrial Slate Dark)
-所有介面預設遵循此套經過 WCAG AA 對比度檢驗的專業工業級色票，**嚴禁隨機硬編碼刺眼純色（如 `#FF0000`, `#0000FF`, `#00FF00`）**：
+## 🎨 1. 雙主題工控色票規範 (Dual Industrial Theme Standards)
+
+所有介面預設遵循此套經過 WCAG AA 對比度檢驗的專業工業級色票，**嚴禁隨機硬編碼刺眼純色（如 `#FF0000`, `#0000FF`）**：
+
+### ☀️ A. FormatString 經典工控淺色主題 (Industrial Slate Light)
+專為資料密集、參數配置、工控主控台打造的高清清爽色系：
+
+| 色票名稱 | 色碼 (HEX) | 用途與規範說明 | 對比標準 |
+| :--- | :--- | :--- | :--- |
+| **`Bg-Primary`** | `#F7F9FC` (Slate 50) | 全域視窗畫布背景、最底層容器 | 搭配 `Text-Primary` 清爽護眼 |
+| **`Bg-Surface`** | `#FFFFFF` (White) | 卡片容器、面板、表單區域背景 | 搭配 `BorderLight` 輕盈分割 |
+| **`Bg-Elevated`** | `#F1F5F9` (Slate 100) | 頂部工具列、表格標題列 (Header) | 結構層次明確 |
+| **`Bg-RowAlt`** | `#F8FAFC` (Slate 50) | 表格偶數列交替色 | 提升大量資料辨識度 |
+| **`BorderLight`** | `#E2E8F0` (Slate 200) | 卡片邊框、網格分隔線 | 柔和清晰 |
+| **`BorderMedium`** | `#CBD5E1` (Slate 300) | 工具列外框、輸入框邊框 | 幾何界線明確 |
+| **`Text-Primary`** | `#1A252F` (Slate 900) | 內容文字、輸入框文字 | 高度清晰 (>13:1) |
+| **`Text-Heading`** | `#1E293B` (Slate 800) | 區塊標題、重要欄位名 | 加粗加深 |
+| **`Text-Muted`** | `#64748B` (Slate 500) | 次要標籤、提示說明 | 符合 WCAG AA |
+| **`Primary`** | `#0284C7` (Sky 600) | 核心動作按鈕、聚焦外框 (Focus) | Hover: `#0369A1` |
+| **`Success`** | `#10B981` (Emerald 500) | 儲存、執行成功、綠色按鈕 | Hover: `#059669` |
+| **`Accent`** | `#8B5CF6` (Violet 500) | 掃描、高階規則生成按鈕 | Hover: `#7C3AED` |
+| **`StatusAlert`** | `#E0F2FE` (Light Sky) | 狀態資訊條（底色 `#E0F2FE`，邊框 `#BAE6FD`，文字 `#0369A1`） | 高可讀性 |
+
+### 🌙 B. 工業級深色主題 (Industrial Slate Dark)
+適用於夜間、光學視覺檢測暗室等場景：
 
 | 色票名稱 | 色碼 (HEX) | 用途與規範說明 | 對比標準 |
 | :--- | :--- | :--- | :--- |
@@ -42,75 +65,48 @@ trigger_condition: 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C
 | **`Text-Primary`** | `#F8FAFC` (Slate 50) | 標題文字、核心讀數、主按鈕文字 | 對比度 > 12:1 (極高) |
 | **`Text-Muted`** | `#94A3B8` (Slate 400) | 次要文字、輸入框 Placeholder、時間標籤 | 符合 WCAG AA |
 | **`Primary`** | `#0284C7` (Sky 600) | 核心動作按鈕、聚焦光圈 (Focus Ring) | Hover: `#0369A1` |
-| **`Success`** | `#10B981` (Emerald 500) | 正常運轉、資料成功寫入、上漲指標 | 文字搭配半透明綠底 |
-| **`Warning`** | `#F59E0B` (Amber 500) | 警告狀態、數值趨近上限、待處理 | 文字搭配半透明黃底 |
-| **`Danger`** | `#EF4444` (Red 500) | 錯誤、警報、刪除動作、異常中斷 | 文字搭配半透明紅底 |
 
 ---
 
-## 📊 2. 表格與資料網格強制深色化規範 (Table & DataGrid Deep Styling)
+## 📐 2. 輸入框尺寸鎖定與網格防跑版鐵律 (Input Size & Grid Layout Protocol)
 
-在深色主題中，**表格標題列（Header）極易殘留系統預設白底**，必須執行以下深度深色化鐵律：
+針對「每次新增操作頁面，輸入框大小隨字體變大變小而非合理分配大小」之問題，必須強制執行以下規範：
 
-### A. Web (`<table>` / `<thead>` / `<th>`)
-```css
-/* 強制設定 thead th 深色底色與黏性置頂，防止白底或文字看不清 */
-.table-container {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-surface);
-}
+### A. 單行輸入框 (Single-line Input / TextBox)
+1. **強制鎖定元件高度 (Lock Height)**：
+   - WPF：必須顯式宣告 `Height="24"` 或 `Height="26"`，**嚴格禁止使用 `Height="Auto"` 放任文字字級動態撐開**。
+   - Web：必須宣告 `height: 26px; box-sizing: border-box;`。
+2. **文字垂直絕對置中 (Vertical Centering)**：
+   - WPF：必須指定 `VerticalContentAlignment="Center"`，確保字型切換或字號微調時文字維持垂直居中，不抖動不貼頂。
+   - Web：使用 `line-height: 26px;` 或 Flex 垂直居中。
+3. **固定內邊距 (Padding)**：
+   - WPF 統一 `Padding="6,0,6,0"` 或 `Padding="4,2"`；Web 統一 `padding: 0 8px;`。
+4. **寬度合理比例分配 (Proportional Grid Width)**：
+   - **表單網格**：一律採用 `Grid`，標籤欄設為 `Width="Auto"`，輸入欄設為 `Width="*"`（彈性比例分配）並搭配 `MinWidth="80"`，絕不讓輸入文字拉扯欄位寬度。
+   - **水平並排**：在 `StackPanel` 或 `WrapPanel` 內，每個輸入框**必須顯式給定具體寬度**（如前綴/後綴 `Width="38"`、名稱 `Width="85"`、鏈結 `Width="160"`、搜尋 `Width="260"`），禁止未給寬度任由文字拉伸。
 
-thead th {
-  background-color: var(--bg-elevated) !important;
-  color: var(--text-primary) !important;
-  font-weight: 700;
-  padding: 12px 16px;
-  border-bottom: 2px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  white-space: nowrap;
-}
+### B. 多行輸入框與編輯器 (Multi-line / Code Editor)
+1. **視窗網格自適應**：
+   - 必須透過 `HorizontalAlignment="Stretch"` 與 `VerticalAlignment="Stretch"` 依附在 `Grid` 的 `*` 比例列（`RowDefinition Height="*"`）。
+   - 內部啟用滾動條（`VerticalScrollBarVisibility="Auto"`），**嚴禁因輸入內容增加而將視窗撐破或推擠到底部按鈕**。
 
-tbody tr:nth-child(even) { background-color: var(--bg-row-alt); }
-tbody tr:hover { background-color: var(--bg-elevated); }
-```
+---
 
-### B. C# WPF (`DataGrid` / `ListView`)
-**嚴禁只設定 `DataGrid.Background`！** 必須同時設定：
-1. **`DataGridColumnHeader`**：背景設為 `#334155`、文字設為 `#F8FAFC`，重寫 `ControlTemplate` 消除系統預設灰色/白底立體外框。
+## 📊 3. 表格與資料網格深色/淺色深度樣式化規範 (Table & DataGrid Deep Styling)
+
+在任何主題中，表格標題列（Header）極易殘留系統預設灰白底，必須執行深度樣式化：
+
+### A. C# WPF (`DataGrid` / `ListView`)
+1. **`DataGridColumnHeader`**：
+   - 淺色主題：背景設為 `#F1F5F9`、文字設為 `#1E293B`、邊框 `#CBD5E1`。
+   - 深色主題：背景設為 `#334155`、文字設為 `#F8FAFC`、邊框 `#475569`。
 2. **`RowHeaderWidth="0"`**：**關鍵！** 強制消除左側預設 RowHeader 與左上角 `SelectAllButton` 殘留的系統白底。
-3. **`DataGridRow`**：設定 `AlternationCount="2"`，以 `Trigger` 實現奇偶交替色（`#1E293B` / `#162032`）與懸停態（`#334155`）。
-4. **`DataGridCell`**：選取態背景設為 `#0284C7`，文字設為 `#FFFFFF`。
-
-### C. C# WinForms (`DataGridView`)
-**嚴禁僅設定 `dataGridView.BackgroundColor`！** 必須強制執行以下配置：
-```csharp
-// 關鍵：必須先關閉作業系統原生樣式，自訂標題列樣式才會生效！
-dataGridView.EnableHeadersVisualStyles = false;
-
-// 標題列深色化 (Header)
-dataGridView.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(51, 65, 85);   // #334155
-dataGridView.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(248, 250, 252); // #F8FAFC
-dataGridView.ColumnHeadersDefaultCellStyle.Font = new Font("Microsoft JhengHei UI", 9.5F, FontStyle.Bold);
-dataGridView.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single;
-
-// 網格主體深色化
-dataGridView.BackgroundColor = Color.FromArgb(15, 23, 42);                           // #0F172A
-dataGridView.DefaultCellStyle.BackColor = Color.FromArgb(30, 41, 59);               // #1E293B
-dataGridView.DefaultCellStyle.ForeColor = Color.FromArgb(248, 250, 252);
-dataGridView.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(22, 32, 50); // #162032
-dataGridView.DefaultCellStyle.SelectionBackColor = Color.FromArgb(2, 132, 199);     // #0284C7
-dataGridView.DefaultCellStyle.SelectionForeColor = Color.White;
-dataGridView.GridColor = Color.FromArgb(51, 65, 85);
-dataGridView.RowHeadersVisible = false; // 隱藏左側空白標頭
-```
+3. **`RowHeight="26"` 或 `28`**：固定行高，消除文字長度變動造成的行高跳動。
+4. **`DataGridRow`**：設定 `AlternationCount="2"`，以 Trigger 實現奇偶交替色與懸停色。
 
 ---
 
-## 🌐 3. Web 網頁佈局防呆鐵律
+## 🌐 4. Web 網頁佈局防呆鐵律
 1. **CSS 變數封裝先行**：`:root` 定義全套變數，全篇樣式嚴禁直接硬編碼 Hex 色碼。
 2. **App Shell 視窗鎖定架構**：`html, body { height: 100vh; margin: 0; overflow: hidden; }`，禁止雙重捲軸。
 3. **Flex / Grid 防撐破機制**：子容器必須顯式加上 `min-width: 0; min-height: 0;`。
@@ -118,19 +114,20 @@ dataGridView.RowHeadersVisible = false; // 隱藏左側空白標頭
 
 ---
 
-## 🖥️ 4. C# WPF 佈局防呆鐵律
+## 🖥️ 5. C# WPF 佈局防呆鐵律
 1. **嚴禁絕對座標排版**：嚴禁使用大數值 `Margin="120,85,0,0"` 定位元件，一律採用 `Grid` 比例分行分列。
-2. **ResourceDictionary 集中管理**：引用 `templates/WpfIndustrialTheme.xaml`，全域套用控制項樣式。
+2. **ResourceDictionary 集中管理**：引用 `templates/WpfFormatStringTheme.xaml` (淺色) 或 `templates/WpfIndustrialTheme.xaml` (深色)。
 3. **垂直置中與內距規範**：輸入框與按鈕統一設定 `VerticalContentAlignment="Center"`。
 
 ---
 
-## 🪟 5. C# WinForms 佈局防呆鐵律
+## 🪟 6. C# WinForms 佈局防呆鐵律
 1. **禁止純絕對座標**：採用 `TableLayoutPanel`、`SplitContainer` 搭配 `Dock = Fill` 或 `Anchor`。
 2. **高 DPI 與統一字體**：`this.AutoScaleMode = AutoScaleMode.Dpi;` 搭配 `Microsoft JhengHei UI` 或 `Segoe UI`。
 
 ---
 
-## 📦 零依賴樣板庫引用
+## 📦 樣板庫引用清單
+- **WPF 經典淺色主題 (FormatString 標準)**：`templates/WpfFormatStringTheme.xaml`
+- **WPF 工業級深色主題**：`templates/WpfIndustrialTheme.xaml`
 - **Web App Shell 與深色表格**：`templates/web-app-shell.css`
-- **WPF ResourceDictionary (含 DataGrid 深度深色化)**：`templates/WpfIndustrialTheme.xaml`
