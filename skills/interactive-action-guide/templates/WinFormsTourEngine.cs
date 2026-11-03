@@ -106,12 +106,83 @@ namespace InteractiveActionGuide.WinForms
             return AddStep(step, mode);
         }
 
+        /// <summary>
+        /// 彈出模式勾選選擇器視窗，供使用者自由勾選後啟動
+        /// </summary>
+        public void StartWithSelectionDialog()
+        {
+            using (var dlg = new Form
+            {
+                Text = "選擇導引模式",
+                Size = new Size(390, 240),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.FromArgb(30, 41, 59),
+                ForeColor = Color.FromArgb(248, 250, 252)
+            })
+            {
+                var lbl = new Label
+                {
+                    Text = "🎯 請勾選導引深度模式：",
+                    Font = new Font("Microsoft JhengHei UI", 10.5f, FontStyle.Bold),
+                    Location = new Point(20, 16),
+                    AutoSize = true
+                };
+
+                var rbConcise = new RadioButton
+                {
+                    Text = "⚡ 收斂精簡模式 (4~6 步核心流程，快速上手)",
+                    Checked = _currentMode == GuideMode.Concise,
+                    Location = new Point(24, 48),
+                    Size = new Size(330, 28),
+                    Font = new Font("Microsoft JhengHei UI", 9.5f, FontStyle.Bold)
+                };
+
+                var rbDetailed = new RadioButton
+                {
+                    Text = "📖 詳細全覆蓋模式 (100% 地毯式涵蓋所有 Tab/按鈕)",
+                    Checked = _currentMode == GuideMode.Detailed,
+                    Location = new Point(24, 82),
+                    Size = new Size(330, 28),
+                    Font = new Font("Microsoft JhengHei UI", 9.5f, FontStyle.Bold)
+                };
+
+                var btnStart = new Button
+                {
+                    Text = "🚀 開始引導",
+                    Location = new Point(24, 126),
+                    Size = new Size(326, 36),
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Color.FromArgb(2, 132, 199),
+                    ForeColor = Color.White,
+                    Font = new Font("Microsoft JhengHei UI", 9.5f, FontStyle.Bold),
+                    Cursor = Cursors.Hand
+                };
+                btnStart.FlatAppearance.BorderSize = 0;
+                btnStart.Click += (s, e) =>
+                {
+                    GuideMode mode = rbDetailed.Checked ? GuideMode.Detailed : GuideMode.Concise;
+                    dlg.DialogResult = DialogResult.OK;
+                    dlg.Close();
+                    Start(mode);
+                };
+
+                dlg.Controls.Add(lbl);
+                dlg.Controls.Add(rbConcise);
+                dlg.Controls.Add(rbDetailed);
+                dlg.Controls.Add(btnStart);
+                dlg.ShowDialog(_mainForm);
+            }
+        }
+
         public void StartIfFirstTime(GuideMode mode = GuideMode.Concise)
         {
             string flagFile = GetStorageFilePath();
             if (!File.Exists(flagFile))
             {
-                Start(mode);
+                StartWithSelectionDialog();
             }
         }
 

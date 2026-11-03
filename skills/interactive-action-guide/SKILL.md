@@ -13,6 +13,42 @@ trigger_condition: 當使用者要求加入實戰互動導引、操作教學、�
 
 ---
 
+## 🚀 雙軌部署模式 (NuGet 套件 vs. 零依賴單檔)
+
+### 方案 A (極度推薦)：引用 NuGet 套件 `InteractiveActionGuide.Desktop`
+針對 C# WPF 或 WinForms 專案，優先推薦透過本機或私有 NuGet 套件引用，**AI 僅需生成 5 行 Fluent API 呼叫**，大幅減少程式碼 Token 消耗：
+```csharp
+using InteractiveActionGuide.Wpf; // 或 InteractiveActionGuide.WinForms
+
+var guide = new WpfInteractiveGuideManager(this) { SopAppTitle = "產線管理系統" }
+    .AddStep("btnSubmit", "送出表單", "填妥後請點擊送出按鈕")
+    .AddStep("txtSearch", "查詢資料", "請輸入關鍵字", advanceOnClick: false);
+
+guide.StartWithSelectionDialog(); // 自動彈出精簡/全覆蓋模式選擇並自動產出 SOP
+```
+
+### 方案 B：零依賴單檔模板拷貝
+當專案無法新增套件依賴時，直接自 `templates/` 目錄複製以下單檔到專案中：
+- WPF: `templates/WpfGuideEngine.cs`
+- WinForms: `templates/WinFormsGuideEngine.cs`
+- SOP 產生器: `templates/SopDocumentGenerator.cs`
+- Web: `templates/guide-engine.js`
+
+---
+
+## 📸 工具閉環：資訊解耦、自動截圖與 Markdown SOP / JSON Manifest 生成
+本引擎採用**「引導與手冊資訊解耦架構 (Decoupled Documentation Architecture)」**：
+- **UI 實戰引導 (`Content`)**：維持精簡聚焦（例如「點擊按鈕送出表單」），避免遮擋畫面。
+- **SOP 業務手冊 (`DetailedDescription`)**：可填寫深入業務背景、系統前置條件（若未填寫則自動 Fallback 到 `Content`）。
+- **警語與預期成果 (`Caution`, `ExpectedResult`)**：自動產出高對比 Alert 區塊與驗證成果。
+
+當導覽完成（`Complete()`）時，自動在 `docs/SOP/` 產出完整閉環：
+1. `screenshots/step_1.png` ... `screenshots/step_N.png`（高解析畫面截圖）
+2. `USER_MANUAL.md`（完整 Markdown 圖文操作手冊，含目錄、詳細業務說明、警語與截圖）
+3. `guide_manifest.json`（**完全獨立的結構化 JSON 資料集**，可直接供外部企業 Wiki、知識庫或其它 AI Agent 讀取二次使用）
+
+---
+
 ## 🔍 Step 0: 讀取 `.csproj` 自動偵測專案版本 (Version-Aware Adaptation)
 
 在注入或修改任何 C# / XAML 代碼前，AI **必須先讀取專案的 `.csproj` 與 `App.config`**：
@@ -31,14 +67,14 @@ trigger_condition: 當使用者要求加入實戰互動導引、操作教學、�
 
 ## 🎯 4 大注入執行步驟 (Core Protocol)
 
-### Step 1: 盤點工作流與模式配置 (Workflow Audit & Dual Modes)
-AI 必須同時建構並支援兩種導引模式，滿足不同情境需求：
+### Step 1: 雙模式步驟盤點與模式勾選器 (Dual Modes & Mode Selector)
+AI 必須同時盤點並實作以下兩套步驟清單，並在導覽啟動時提供**模式勾選選擇器 (Mode Selector)**：
 - **`concise` (收斂精簡模式)**：
   - **規則**：嚴格過濾次要控制項，僅保留 4 至 6 個核心操作步驟（起點 $\rightarrow$ 核心 $\rightarrow$ 終點）。
 - **`detailed` (詳細全覆蓋模式)**：
   - **規則**：執行 100% 地毯式盤點，涵蓋所有 Tab 分頁、Expander 展開面板、次要按鈕與輸入框，不限步驟數量。
 
-在初始化引擎時傳入雙模式清單：`modes: { concise: [...], detailed: [...] }`，介面將自動提供「⚡ 精簡導引」與「📖 完整教學」模式切換。
+**啟動流程**：在介面點擊「❓ 操作導覽」或首次開啟時，預設彈出**模式勾選器彈窗**，讓使用者自由勾選「⚡ 收斂精簡模式」或「📖 詳細全覆蓋模式」後再開始導引！代碼支援 `guide.StartWithSelectionDialog()`。
 
 ### Step 2: 綁定語意錨點與事件 (Semantic Anchoring)
 - **Web/HTML**：目標元素標記 `data-tour="step-X"`，並設定 `advanceOn`:
@@ -60,13 +96,15 @@ AI 必須同時建構並支援兩種導引模式，滿足不同情境需求：
 - **WinForms**：`BeforeShow = () => tabControl1.SelectedTab = tabPageDetails`
 
 ### Step 4: 注入實戰導引引擎 (Engine Injection)
-1. 根據專案類型注入對應的實戰導引引擎（Web: `guide-engine.js`；WPF: `WpfGuideEngine.cs`；WinForms: `WinFormsGuideEngine.cs`）。
+1. 根據專案類型注入對應的實戰導引引擎（Web: `guide-engine.js`；WPF: `WpfGuideEngine.cs`；WinForms: `WinFormsGuideEngine.cs`；或使用 NuGet 套件）。
 2. 在介面右上角加上常駐「**❓ 操作導覽**」按鈕。
 3. 利用本機儲存機制（Web: `localStorage`；C#: 本地 AppData Flag 檔案）實作首次打開自動啟動。
 
 ---
 
-## 📦 實戰導引引擎模板引用
+## 📦 實戰導引引擎資源
+- **NuGet 套件**：`src/InteractiveActionGuide.Desktop/`（可執行 `dotnet pack` 封裝為 `.nupkg`）
 - **Web 原生引擎**：`templates/guide-engine.js`（`tour-engine.js`）
-- **C# WPF 引擎**：`templates/WpfGuideEngine.cs`（`WpfTourEngine.cs`，C# 7.3 相容，HitTestCore 穿透）
-- **C# WinForms 引擎**：`templates/WinFormsGuideEngine.cs`（`WinFormsTourEngine.cs`，C# 7.3 相容，Region.Exclude 穿透）
+- **C# WPF 引擎**：`templates/WpfGuideEngine.cs`（C# 7.3 相容，HitTestCore 穿透）
+- **C# WinForms 引擎**：`templates/WinFormsGuideEngine.cs`（C# 7.3 相容，Region.Exclude 穿透）
+- **SOP 產生器**：`templates/SopDocumentGenerator.cs`（自動排版圖文 Markdown）

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net472;net48;net6.0-windows;net8.0-windows</TargetFrameworks>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>7.3</LangVersion>
+    <Nullable>disable</Nullable>
+    <PackageId>InteractiveActionGuide.Desktop</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Antigravity AI</Authors>
+    <Company>Antigravity</Company>
+    <Description>實戰互動導引與自動 SOP 截圖產生器 (適用於 C# WPF 與 WinForms，支援四周鎖死、洞口穿透操作、事件監聽與自動 Markdown 使用手冊生成)</Description>
+    <PackageTags>wpf;winforms;onboarding;tour;interactive-guide;sop;screenshot;ai-agent</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

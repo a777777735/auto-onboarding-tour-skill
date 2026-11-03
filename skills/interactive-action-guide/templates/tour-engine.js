@@ -345,9 +345,80 @@
       }
     }
 
+    /**
+     * 彈出模式勾選視窗供使用者自主選擇模式後啟動
+     */
+    startWithSelection() {
+      if (!this.modes) {
+        this.start(0);
+        return;
+      }
+      this.showModeSelector((chosenMode) => {
+        this.start(chosenMode);
+      });
+    }
+
+    /**
+     * 顯示高質感模式勾選器彈窗
+     * @param {Function} onConfirm - 勾選確認回調 (mode)
+     */
+    showModeSelector(onConfirm) {
+      const existing = document.getElementById('iag-mode-modal');
+      if (existing) existing.remove();
+
+      const modalWrap = document.createElement('div');
+      modalWrap.id = 'iag-mode-modal';
+      modalWrap.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(15, 23, 42, 0.75); z-index: 999999;
+        display: flex; align-items: center; justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      `;
+
+      modalWrap.innerHTML = `
+        <div style="background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 12px; width: 380px; max-width: 90vw; padding: 22px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
+            <h3 style="margin:0; font-size: 16px; font-weight:700; color:#f8fafc;">🎯 選擇實戰導引模式</h3>
+            <button id="iag-modal-close" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✕</button>
+          </div>
+          <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">請勾選您希望進行的操作引導深度：</p>
+          
+          <label style="display: flex; align-items: flex-start; gap: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer;">
+            <input type="radio" name="iag_mode_opt" value="concise" ${this.currentMode === 'concise' ? 'checked' : ''} style="margin-top: 3px; accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 700; font-size: 13.5px; color: #f8fafc;">⚡ 收斂精簡模式 (推薦)</div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">保留 4 至 6 個核心步驟（起點 $\\rightarrow$ 核心 $\\rightarrow$ 終點），快速上手必備操作。</div>
+            </div>
+          </label>
+
+          <label style="display: flex; align-items: flex-start; gap: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 18px; cursor: pointer;">
+            <input type="radio" name="iag_mode_opt" value="detailed" ${this.currentMode === 'detailed' ? 'checked' : ''} style="margin-top: 3px; accent-color: #0284c7;">
+            <div>
+              <div style="font-weight: 700; font-size: 13.5px; color: #f8fafc;">📖 詳細全覆蓋模式</div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">地毯式引導所有 Tab 頁籤、展開面板與次要按鈕，深度熟悉全站細節。</div>
+            </div>
+          </label>
+
+          <button id="iag-modal-submit" style="width: 100%; background: #0284c7; color: #fff; border: none; border-radius: 6px; padding: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s ease;">
+            🚀 開始引導
+          </button>
+        </div>
+      `;
+
+      document.body.appendChild(modalWrap);
+
+      modalWrap.querySelector('#iag-modal-close').onclick = () => modalWrap.remove();
+      modalWrap.querySelector('#iag-modal-submit').onclick = () => {
+        const checked = modalWrap.querySelector('input[name="iag_mode_opt"]:checked');
+        const mode = checked ? checked.value : 'concise';
+        modalWrap.remove();
+        if (typeof onConfirm === 'function') onConfirm(mode);
+      };
+    }
+
     startIfFirstTime() {
       if (!localStorage.getItem(this.storageKey)) {
-        this.start(0);
+        this.startWithSelection();
       }
     }
 
@@ -616,7 +687,11 @@
       btn.className = 'iag-launcher-btn';
       btn.innerHTML = `<span>❓</span> <span>${options.text || '操作導覽'}</span>`;
       btn.addEventListener('click', () => {
-        if (typeof options.onClick === 'function') options.onClick();
+        if (typeof options.onClick === 'function') {
+          options.onClick();
+        } else if (options.guide && typeof options.guide.startWithSelection === 'function') {
+          options.guide.startWithSelection();
+        }
       });
       document.body.appendChild(btn);
       return btn;
