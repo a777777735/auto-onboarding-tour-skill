@@ -22,7 +22,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **interactive-action-guide** | Onboarding | *.html, *.jsx, *.tsx, *.vue, *.xaml, *.cs" | always | 當使用者要求加入實戰互動導引、操作教學、新手引導、下一步引導或介面 SOP 時，自動分析工作流並注入四周背景鎖死、中間聚光燈洞口可穿透操作且監聽真實事件的互動引導引擎。 | [skills/interactive-action-guide/SKILL.md](skills/interactive-action-guide/SKILL.md) |
 | **skill-scaffold** | Meta | SKILL.md, *.ps1, *.sh" | contextual | 當使用者要求新增、建立、打包或擴充一個新的 AI Agent Skill 時，必須主動調用此技能以產生符合標準規範的骨架並自動同步全域。 | [skills/skill-scaffold/SKILL.md](skills/skill-scaffold/SKILL.md) |
-| **ui-layout-theme-guard** | UI/UX | *.html, *.css, *.jsx, *.tsx, *.vue, *.xaml, *.cs" | always | 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C# (WPF/WinForms) 介面代碼時，必須主動套用此規範防止輸入框大小暴走跑版與刺眼配色。 | [skills/ui-layout-theme-guard/SKILL.md](skills/ui-layout-theme-guard/SKILL.md) |
+| **ui-layout-theme-guard** | UI/UX | *.html, *.css, *.jsx, *.tsx, *.vue, *.xaml, *.cs | always | 當生成、修改或美化任何 Web 網頁 (HTML/CSS) 或 C# (WPF/WinForms) 介面代碼時，必須主動套用此規範防止輸入框大小暴走、DataGrid懸停白底白字、視窗底色黑透與刺眼配色。 | [skills/ui-layout-theme-guard/SKILL.md](skills/ui-layout-theme-guard/SKILL.md) |
 | **wpf-embedded-manual-and-docs** | Documentation | *.xaml, *.cs, *.md | contextual | 當使用者要求建立、更新或同步 WPF 應用程式內嵌說明手冊、可縮放平移向量流程圖或技術手冊章節卡片時調用。 | [skills/wpf-embedded-manual-and-docs/SKILL.md](skills/wpf-embedded-manual-and-docs/SKILL.md) |
 
 ---

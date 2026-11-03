@@ -178,7 +178,7 @@
         <Setter Property="Padding" Value="10,8"/>
     </Style>
 
-    <!-- 5. 工控資料表格樣式 (DataGrid Deep Styling for Light Theme) -->
+    <!-- 5. 工控資料表格樣式：100% 杜絕懸停 (Hover) 與選中 (Selected) 狀態白底白字 -->
     <Style x:Key="LightDataGridStyle" TargetType="{x:Type DataGrid}">
         <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}"/>
         <Setter Property="RowBackground" Value="{StaticResource BgSurfaceBrush}"/>
@@ -193,6 +193,9 @@
         <Setter Property="AutoGenerateColumns" Value="False"/>
         <Setter Property="CanUserAddRows" Value="False"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="SelectionUnit" Value="FullRow"/>
+        
+        <!-- 表頭樣式 -->
         <Setter Property="ColumnHeaderStyle">
             <Setter.Value>
                 <Style TargetType="{x:Type DataGridColumnHeader}">
@@ -202,6 +205,59 @@
                     <Setter Property="Padding" Value="8,5"/>
                     <Setter Property="BorderThickness" Value="0,0,1,1"/>
                     <Setter Property="BorderBrush" Value="{StaticResource BorderMediumBrush}"/>
+                </Style>
+            </Setter.Value>
+        </Setter>
+
+        <!-- 行樣式：懸停灰藍底黑字、選中深藍底白字 -->
+        <Setter Property="RowStyle">
+            <Setter.Value>
+                <Style TargetType="{x:Type DataGridRow}">
+                    <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}"/>
+                    <Style.Triggers>
+                        <!-- 未選中懸停：深色字 + 灰藍底，杜絕同色變白 -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsSelected" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" Value="#E2E8F0"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                        </MultiTrigger>
+                        <!-- 選中態：純白字 + 操作藍底 -->
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{StaticResource PrimaryActionBrush}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Setter.Value>
+        </Setter>
+
+        <!-- 單元格樣式：鎖死 Hover 態文字色 -->
+        <Setter Property="CellStyle">
+            <Setter.Value>
+                <Style TargetType="{x:Type DataGridCell}">
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Padding" Value="6,0"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Style.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsSelected" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Background" Value="#E2E8F0"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                        </MultiTrigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{StaticResource PrimaryActionBrush}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                    </Style.Triggers>
                 </Style>
             </Setter.Value>
         </Setter>
