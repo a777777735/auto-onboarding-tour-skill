@@ -80,27 +80,28 @@
         </Setter>
     </Style>
 
-    <!-- 2. 多行延展編輯框樣式：由外層 Grid 比例行自動分配高度，內部帶滾動條，禁止撐破容器 -->
-    <Style x:Key="StretchMultiLineTextBoxStyle" TargetType="{x:Type TextBox}">
+    <!-- 2. 多行變量鏈結隨換行符號自適應增高 TextBox 樣式 (FormatString 標竿規範) -->
+    <Style x:Key="MultiLineVarLinkTextBoxStyle" TargetType="{x:Type TextBox}">
         <Setter Property="Width" Value="Auto"/>
         <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="24"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="VerticalAlignment" Value="Stretch"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="VerticalContentAlignment" Value="Top"/>
-        <Setter Property="FontFamily" Value="Consolas, Microsoft YaHei UI"/>
-        <Setter Property="FontSize" Value="12.5"/>
-        <Setter Property="Padding" Value="8"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FontFamily" Value="Consolas, Microsoft YaHei UI, Segoe UI"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Padding" Value="4,2"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="CaretBrush" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderMediumBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="AcceptsReturn" Value="True"/>
-        <Setter Property="AcceptsTab" Value="True"/>
-        <Setter Property="TextWrapping" Value="Wrap"/>
-        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
-        <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="HorizontalScrollBarVisibility" Value="Hidden"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TextBox}">
@@ -108,16 +109,21 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="4"
+                            TextElement.Foreground="{TemplateBinding Foreground}"
+                            CornerRadius="2"
                             SnapsToDevicePixels="True">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Focusable="False"
-                                      HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}"
-                                      VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"/>
+                                      Margin="{TemplateBinding Padding}"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryActionBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#F8FAFC"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -169,16 +175,7 @@
         </Setter>
     </Style>
 
-    <!-- 4. 淺色卡片容器邊框樣式 -->
-    <Style x:Key="LightCardBorderStyle" TargetType="{x:Type Border}">
-        <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="6"/>
-        <Setter Property="Padding" Value="10,8"/>
-    </Style>
-
-    <!-- 5. 工控資料表格樣式：100% 杜絕懸停 (Hover) 與選中 (Selected) 狀態白底白字 -->
+    <!-- 4. 工控資料表格樣式：RowHeight="NaN" 支援換行符號自適應增高，100% 杜絕懸停白底白字 -->
     <Style x:Key="LightDataGridStyle" TargetType="{x:Type DataGrid}">
         <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}"/>
         <Setter Property="RowBackground" Value="{StaticResource BgSurfaceBrush}"/>
@@ -188,7 +185,9 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderLightBrush}"/>
         <Setter Property="VerticalGridLinesBrush" Value="{StaticResource BorderLightBrush}"/>
-        <Setter Property="RowHeight" Value="26"/>
+        <!-- 關鍵：RowHeight 設為 NaN 搭配 MinRowHeight，換行符號時欄高自動撐開 -->
+        <Setter Property="RowHeight" Value="NaN"/>
+        <Setter Property="MinRowHeight" Value="26"/>
         <Setter Property="RowHeaderWidth" Value="0"/>
         <Setter Property="AutoGenerateColumns" Value="False"/>
         <Setter Property="CanUserAddRows" Value="False"/>
@@ -209,10 +208,12 @@
             </Setter.Value>
         </Setter>
 
-        <!-- 行樣式：懸停灰藍底黑字、選中深藍底白字 -->
+        <!-- 行樣式：高度自適應，懸停灰藍底黑字、選中深藍底白字 -->
         <Setter Property="RowStyle">
             <Setter.Value>
                 <Style TargetType="{x:Type DataGridRow}">
+                    <Setter Property="Height" Value="Auto"/>
+                    <Setter Property="MinHeight" Value="26"/>
                     <Setter Property="Background" Value="{StaticResource BgSurfaceBrush}"/>
                     <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                     <Setter Property="BorderThickness" Value="0,0,0,1"/>
@@ -237,12 +238,13 @@
             </Setter.Value>
         </Setter>
 
-        <!-- 單元格樣式：鎖死 Hover 態文字色 -->
+        <!-- 單元格樣式：高度自適應 -->
         <Setter Property="CellStyle">
             <Setter.Value>
                 <Style TargetType="{x:Type DataGridCell}">
+                    <Setter Property="Height" Value="Auto"/>
                     <Setter Property="BorderThickness" Value="0"/>
-                    <Setter Property="Padding" Value="6,0"/>
+                    <Setter Property="Padding" Value="6,2"/>
                     <Setter Property="VerticalContentAlignment" Value="Center"/>
                     <Style.Triggers>
                         <MultiTrigger>
