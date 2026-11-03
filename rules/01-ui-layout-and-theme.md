@@ -60,3 +60,13 @@
 2. **高 DPI 與統一字體修正**：
    - Form 初始化必須設定 `this.AutoScaleMode = AutoScaleMode.Dpi;` 與 `this.DoubleBuffered = true;`。
    - 預設字體一律顯式指派為現代字體：`new Font("Microsoft JhengHei UI", 9.5F, FontStyle.Regular)` 或 `Segoe UI`，嚴禁使用舊式「新細明體」。
+
+
+## 4. DataGrid 與輸入欄位自適應及超長內容滾動規範
+- **同行超長不換行原則 (NoWrap)**：
+  - 變數鍵值、單元格字串展示欄位（如 DataGrid 中的即時數值、變數鏈結），同行文字長度超過欄寬時嚴禁自動折行（`TextWrapping="NoWrap"`）。
+  - 只有在字串中存在顯式換行符號（`\r\n` 或 `\n`）時才進行分行計算高度；同行文字橫向超長時保持單行，可搭配水平捲軸或浮動 `ToolTip` 檢視完整內容。
+- **杜絕下拉滾動跳整行 (Pixel Smooth Scrolling)**：
+  - 當單行因多行內容變高時，WPF 預設的邏輯滾動（`ScrollViewer.CanContentScroll="True"`）會導致下拉捲軸一次跳過整行，使得中間過長內容無法被看清。
+  - **強制設定**：在 DataGrid 上必須顯式設定 `ScrollViewer.CanContentScroll="False"` 與 `VirtualizingPanel.ScrollUnit="Pixel"`，並啟用 `HorizontalScrollBarVisibility="Auto"` 與 `VerticalScrollBarVisibility="Auto"`。
+  - 此設定將邏輯項目滾動轉換為物理像素級平滑滾動，使用者滾動時可平滑停留在任何高度，完整檢視過長行內的每一個字元。
